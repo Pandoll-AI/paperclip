@@ -1,0 +1,31 @@
+{
+  "stages": [
+    {
+      "name": "kawaii_prompt_planning",
+      "purpose": "Convert company, CEO setup, and staff metadata into auditable image generation prompts.",
+      "tier": "T1",
+      "model_type": "fast_complex",
+      "constraints": [
+        "stdout JSON/text only",
+        "do not create, modify, or delete files",
+        "do not read .env, credentials, or secrets"
+      ]
+    },
+    {
+      "name": "kawaii_image_generation",
+      "purpose": "Create UI image assets through imagegen-codex batch jobs under .paperclip/generated-assets.",
+      "tier": "T2",
+      "model_type": "reasoning",
+      "allowed_dirs": [".paperclip/generated-assets"],
+      "allowed_extensions": [".json", ".png", ".jpg", ".jpeg", ".webp"],
+      "connector": "imagegen-codex",
+      "constraints": [
+        "source-code files must not be created, modified, or deleted",
+        "generated outputs must stay under .paperclip/generated-assets",
+        "do not read .env, credentials, or secrets"
+      ]
+    }
+  ],
+  "prod_connector": "external_image_api_or_queue",
+  "switch_env": "IMAGEGEN_CODEX_BIN"
+}

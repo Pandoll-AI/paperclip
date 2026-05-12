@@ -36,6 +36,7 @@ export const companiesApi = {
         | "requireBoardApprovalForNewAgents"
         | "feedbackDataSharingEnabled"
         | "brandColor"
+        | "ceoHonorific"
         | "logoAssetId"
       >
     >,

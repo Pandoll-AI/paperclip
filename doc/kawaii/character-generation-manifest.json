@@ -1,0 +1,55 @@
+{
+  "styleVersion": "paperclip-kawaii-v2",
+  "referenceImage": "/kawaii/characters/reference/character-lineup-reference.png",
+  "avatarSampleSheet": "/kawaii/characters/reference/avatar-sample-sheet.png",
+  "userAvatarRule": {
+    "asset": "/kawaii/characters/user-faceless-outline.svg",
+    "displayRule": "Show the user as \"CEO, {username}\".",
+    "rule": "The user/CEO is never rendered as a face. Use only a dotted, faceless, royal-outline silhouette."
+  },
+  "displayRule": {
+    "staff": "Display staff as \"{title}, {firstName}\" only. Archetype ids are internal and must not be shown.",
+    "ceoHonorific": "Dialogue addresses the user with a configurable CEO honorific. Default is \"대표님\" for Korean locale and \"Mr. CEO\" for English/non-Korean locale.",
+    "legacyCeoAgent": "If imported or seeded agent data contains a CEO agent, Kawaii UI treats that staff visual as CTO. The real CEO is always the signed-in user."
+  },
+  "characters": [
+    {
+      "id": "rika",
+      "role": "CTO / Engineer",
+      "avatarTraits": ["black hair with purple sheen", "violet eyes", "purple headphones", "gold code hairpin"],
+      "avatar": "/kawaii/characters/avatars/rika.png",
+      "overlay": "/kawaii/characters/overlays/rika-transparent.png"
+    },
+    {
+      "id": "sera",
+      "role": "PM / UI Designer",
+      "avatarTraits": ["honey-blonde hair", "blue eyes", "blue bow", "stationery planner accessory"],
+      "avatar": "/kawaii/characters/avatars/sera.png",
+      "overlay": "/kawaii/characters/overlays/sera-transparent.png"
+    },
+    {
+      "id": "yuna",
+      "role": "QA Agent",
+      "avatarTraits": ["silver-white hair", "amber eyes", "orange flower hair clip", "cream QA uniform"],
+      "avatar": "/kawaii/characters/avatars/yuna.png",
+      "overlay": "/kawaii/characters/overlays/yuna-transparent.png"
+    },
+    {
+      "id": "nari",
+      "role": "Finance Agent",
+      "avatarTraits": ["warm brown bob", "green eyes", "round glasses", "green finance ribbon"],
+      "avatar": "/kawaii/characters/avatars/nari.png",
+      "overlay": "/kawaii/characters/overlays/nari-transparent.png"
+    }
+  ],
+  "generationAxes": {
+    "expressions": ["neutral", "happy", "thinking", "concerned", "celebrating", "strict", "approving", "warning"],
+    "scenes": ["office dashboard", "staff room", "quest detail", "approval room", "budget room", "deployment review", "goal planning"],
+    "accessories": ["clipboard", "laptop", "headphones", "planner", "checklist", "ledger pen", "calculator charm", "paperclip hairpin"],
+    "moods": ["soft morning", "focused", "urgent but cute", "approval tension", "celebration", "careful budget review", "cozy planning"]
+  },
+  "overlayPolicy": {
+    "useCases": ["dialogue dock", "approval warning", "quest handoff", "empty state", "success celebration"],
+    "rule": "Use overlay characters as occasional emotional anchors, not as a permanent decoration on every panel."
+  }
+}

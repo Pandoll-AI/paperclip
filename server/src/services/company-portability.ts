@@ -2521,6 +2521,7 @@ function buildManifestFromPackageFiles(
       name: companyName,
       description: asString(companyFrontmatter.description),
       brandColor: asString(paperclipCompany.brandColor),
+      ceoHonorific: asString(paperclipCompany.ceoHonorific),
       logoPath: asString(paperclipCompany.logoPath) ?? asString(paperclipCompany.logo),
       attachmentMaxBytes:
         typeof paperclipCompany.attachmentMaxBytes === "number" && Number.isFinite(paperclipCompany.attachmentMaxBytes)
@@ -3573,6 +3574,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
         schema: "paperclip/v1",
         company: stripEmptyValues({
           brandColor: company.brandColor ?? null,
+          ceoHonorific: company.ceoHonorific ?? null,
           logoPath: companyLogoPath,
           attachmentMaxBytes: company.attachmentMaxBytes,
           requireBoardApprovalForNewAgents: company.requireBoardApprovalForNewAgents ? true : undefined,
@@ -4074,6 +4076,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
       name: string;
       requireBoardApprovalForNewAgents?: boolean | null;
       attachmentMaxBytes?: number | null;
+      ceoHonorific?: string | null;
     } | null = null;
     let companyAction: "created" | "updated" | "unchanged" = "unchanged";
 
@@ -4096,6 +4099,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
         name: companyName,
         description: include.company ? (sourceManifest.company?.description ?? null) : null,
         brandColor: include.company ? (sourceManifest.company?.brandColor ?? null) : null,
+        ceoHonorific: include.company ? (sourceManifest.company?.ceoHonorific ?? null) : null,
         attachmentMaxBytes: include.company
           ? (sourceManifest.company?.attachmentMaxBytes ?? undefined)
           : undefined,
@@ -4130,6 +4134,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
           name: sourceManifest.company.name,
           description: sourceManifest.company.description,
           brandColor: sourceManifest.company.brandColor,
+          ceoHonorific: sourceManifest.company.ceoHonorific,
           attachmentMaxBytes: sourceManifest.company.attachmentMaxBytes ?? undefined,
           requireBoardApprovalForNewAgents: sourceManifest.company.requireBoardApprovalForNewAgents,
           feedbackDataSharingEnabled: sourceManifest.company.feedbackDataSharingEnabled,

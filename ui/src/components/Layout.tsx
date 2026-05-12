@@ -41,6 +41,7 @@ import { scheduleMainContentFocus } from "../lib/main-content-focus";
 import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
 import { PluginSlotMount, resolveRouteSidebarSlot, usePluginSlots } from "../plugins/slots";
+import { KawaiiDialogueDock, KawaiiSidebar, KawaiiTopBar } from "../kawaii/KawaiiShell";
 
 const INSTANCE_SETTINGS_MEMORY_KEY = "paperclip.lastInstanceSettingsPath";
 
@@ -191,6 +192,7 @@ export function Layout() {
   ]);
 
   const togglePanel = togglePanelVisible;
+  const useKawaiiShell = !isInstanceSettingsRoute && !routeSidebarSlot;
   const openSearch = useCallback(() => {
     document.dispatchEvent(new KeyboardEvent("keydown", {
       key: "k",
@@ -342,6 +344,44 @@ export function Layout() {
     if (!shouldResetScroll) return;
     resetNavigationScroll(mainContentRef.current);
   }, [location.pathname, navigationType]);
+
+  if (useKawaiiShell) {
+    return (
+      <GeneralSettingsProvider value={{ keyboardShortcutsEnabled }}>
+        <div className="kawaii-shell">
+          <div className="kawaii-board">
+            <KawaiiSidebar />
+            <div className="kawaii-main">
+              <KawaiiTopBar />
+              <main
+                id="main-content"
+                ref={mainContentRef}
+                tabIndex={-1}
+                className="kawaii-main__scroll outline-none"
+              >
+                {hasUnknownCompanyPrefix ? (
+                  <NotFoundPage
+                    scope="invalid_company_prefix"
+                    requestedPrefix={companyPrefix ?? selectedCompany?.issuePrefix}
+                  />
+                ) : (
+                  <Outlet />
+                )}
+              </main>
+              <KawaiiDialogueDock />
+            </div>
+          </div>
+          <CommandPalette />
+          <NewIssueDialog />
+          <NewProjectDialog />
+          <NewGoalDialog />
+          <NewAgentDialog />
+          <KeyboardShortcutsCheatsheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+          <ToastViewport />
+        </div>
+      </GeneralSettingsProvider>
+    );
+  }
 
   return (
     <GeneralSettingsProvider value={{ keyboardShortcutsEnabled }}>

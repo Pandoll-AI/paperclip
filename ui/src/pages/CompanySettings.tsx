@@ -18,6 +18,7 @@ import {
   ToggleField,
   HintIcon,
 } from "../components/agent-config-primitives";
+import { kawaiiDefaultCeoHonorific } from "../kawaii/display";
 
 type AgentSnippetInput = {
   onboardingTextUrl: string;
@@ -41,6 +42,7 @@ export function CompanySettings() {
   const [companyName, setCompanyName] = useState("");
   const [description, setDescription] = useState("");
   const [brandColor, setBrandColor] = useState("");
+  const [ceoHonorific, setCeoHonorific] = useState("");
   const [attachmentMaxMiB, setAttachmentMaxMiB] = useState(String(DEFAULT_COMPANY_ATTACHMENT_MAX_MIB));
   const [logoUrl, setLogoUrl] = useState("");
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export function CompanySettings() {
     setCompanyName(selectedCompany.name);
     setDescription(selectedCompany.description ?? "");
     setBrandColor(selectedCompany.brandColor ?? "");
+    setCeoHonorific(selectedCompany.ceoHonorific ?? kawaiiDefaultCeoHonorific());
     setAttachmentMaxMiB(String(Math.round((selectedCompany.attachmentMaxBytes ?? DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES) / BYTES_PER_MIB)));
     setLogoUrl(selectedCompany.logoUrl ?? "");
   }, [selectedCompany]);
@@ -71,6 +74,7 @@ export function CompanySettings() {
     (companyName !== selectedCompany.name ||
       description !== (selectedCompany.description ?? "") ||
       brandColor !== (selectedCompany.brandColor ?? "") ||
+      ceoHonorific.trim() !== (selectedCompany.ceoHonorific ?? kawaiiDefaultCeoHonorific()) ||
       attachmentMaxBytes !== (selectedCompany.attachmentMaxBytes ?? DEFAULT_COMPANY_ATTACHMENT_MAX_BYTES));
 
   const generalMutation = useMutation({
@@ -78,6 +82,7 @@ export function CompanySettings() {
       name: string;
       description: string | null;
       brandColor: string | null;
+      ceoHonorific: string | null;
       attachmentMaxBytes: number;
     }) => companiesApi.update(selectedCompanyId!, data),
     onSuccess: () => {
@@ -232,6 +237,7 @@ export function CompanySettings() {
       name: companyName.trim(),
       description: description.trim() || null,
       brandColor: brandColor || null,
+      ceoHonorific: ceoHonorific.trim() || null,
       attachmentMaxBytes
     });
   }
@@ -390,6 +396,33 @@ export function CompanySettings() {
               </Field>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Kawaii Office */}
+      <div className="space-y-4">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Kawaii Office
+        </div>
+        <div className="space-y-3 rounded-md border border-border px-4 py-4">
+          <Field
+            label="CEO honorific"
+            hint="Used by Kawaii staff dialogue. Default is 대표님 in Korean and Mr. CEO in English."
+          >
+            <div className="flex flex-col gap-1.5">
+              <input
+                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                type="text"
+                maxLength={40}
+                value={ceoHonorific}
+                placeholder={kawaiiDefaultCeoHonorific()}
+                onChange={(e) => setCeoHonorific(e.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">
+                Example: {ceoHonorific.trim() || kawaiiDefaultCeoHonorific()}, 승인 요청을 확인했어요.
+              </span>
+            </div>
+          </Field>
         </div>
       </div>
 

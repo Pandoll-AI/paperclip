@@ -6,6 +6,7 @@ import {
 
 const logoAssetIdSchema = z.string().uuid().nullable().optional();
 const brandColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
+const ceoHonorificSchema = z.string().trim().min(1).max(40).nullable().optional();
 const feedbackDataSharingTermsVersionSchema = z.string().min(1).nullable().optional();
 const attachmentMaxBytesSchema = z
   .number()
@@ -18,6 +19,7 @@ export const createCompanySchema = z.object({
   description: z.string().optional().nullable(),
   budgetMonthlyCents: z.number().int().nonnegative().optional().default(0),
   attachmentMaxBytes: attachmentMaxBytesSchema.optional(),
+  ceoHonorific: ceoHonorificSchema,
 });
 
 export type CreateCompany = z.infer<typeof createCompanySchema>;
@@ -33,6 +35,7 @@ export const updateCompanySchema = createCompanySchema
     feedbackDataSharingConsentByUserId: z.string().min(1).nullable().optional(),
     feedbackDataSharingTermsVersion: feedbackDataSharingTermsVersionSchema,
     brandColor: brandColorSchema,
+    ceoHonorific: ceoHonorificSchema,
     logoAssetId: logoAssetIdSchema,
     attachmentMaxBytes: attachmentMaxBytesSchema.optional(),
   });

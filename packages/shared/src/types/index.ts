@@ -89,6 +89,15 @@ export type {
   AdapterEnvironmentTestResult,
 } from "./agent.js";
 export type { AssetImage } from "./asset.js";
+export type {
+  KawaiiAssetEntry,
+  KawaiiAssetOwnerType,
+  KawaiiAssetPurpose,
+  KawaiiAssetRole,
+  KawaiiAssetSet,
+  KawaiiAssetSetManifest,
+  KawaiiAssetSetStatus,
+} from "./kawaii.js";
 export type { Project, ProjectCodebase, ProjectCodebaseOrigin, ProjectGoalRef, ProjectManagedByPlugin, ProjectWorkspace } from "./project.js";
 export type {
   CompanySearchHighlight,

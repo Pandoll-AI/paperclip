@@ -30,6 +30,12 @@ export const queryKeys = {
     detectModel: (companyId: string, adapterType: string) =>
       ["agents", companyId, "detect-model", adapterType] as const,
   },
+  kawaiiAssets: {
+    list: (companyId: string, filters?: Record<string, string | undefined>) =>
+      ["kawaii-assets", companyId, filters ?? {}] as const,
+    agent: (companyId: string, agentId: string) =>
+      ["kawaii-assets", companyId, "agent", agentId] as const,
+  },
   issues: {
     list: (companyId: string) => ["issues", companyId] as const,
     search: (companyId: string, q: string, projectId?: string, limit?: number) =>

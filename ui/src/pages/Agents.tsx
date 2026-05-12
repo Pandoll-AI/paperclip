@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { agentsApi, type OrgNode } from "../api/agents";
 import { heartbeatsApi } from "../api/heartbeats";
+import { kawaiiAssetsApi } from "../api/kawaiiAssets";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
@@ -18,7 +19,9 @@ import { PageTabBar } from "../components/PageTabBar";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, List, GitBranch, SlidersHorizontal } from "lucide-react";
-import { AGENT_ROLE_LABELS, type Agent } from "@paperclipai/shared";
+import { AGENT_ROLE_LABELS, type Agent, type KawaiiAssetSet } from "@paperclipai/shared";
+import { KawaiiAgentAvatar } from "../kawaii/KawaiiAgentAvatar";
+import { needsKawaiiPolling } from "../kawaii/assets";
 
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
 
@@ -94,6 +97,13 @@ export function Agents() {
     refetchInterval: 15_000,
   });
 
+  const { data: kawaiiAssetSets } = useQuery({
+    queryKey: queryKeys.kawaiiAssets.list(selectedCompanyId!, { purpose: "staff_character" }),
+    queryFn: () => kawaiiAssetsApi.list(selectedCompanyId!, { purpose: "staff_character" }),
+    enabled: !!selectedCompanyId,
+    refetchInterval: (query) => needsKawaiiPolling(query.state.data) ? 4_000 : false,
+  });
+
   // Map agentId -> first live run + live run count
   const liveRunByAgent = useMemo(() => {
     const map = new Map<string, { runId: string; liveCount: number }>();
@@ -114,6 +124,14 @@ export function Agents() {
     for (const a of agents ?? []) map.set(a.id, a);
     return map;
   }, [agents]);
+
+  const visualSetByAgent = useMemo(() => {
+    const map = new Map<string, KawaiiAssetSet>();
+    for (const set of kawaiiAssetSets ?? []) {
+      if (set.ownerType === "agent" && !map.has(set.ownerId)) map.set(set.ownerId, set);
+    }
+    return map;
+  }, [kawaiiAssetSets]);
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Agents" }]);
@@ -233,11 +251,10 @@ export function Agents() {
                 to={agentUrl(agent)}
                 className={agent.pausedAt && tab !== "paused" ? "opacity-50" : ""}
                 leading={
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span
-                      className={`absolute inline-flex h-full w-full rounded-full ${agentStatusDot[agent.status] ?? agentStatusDotDefault}`}
-                    />
-                  </span>
+                  <KawaiiAgentAvatar
+                    assetSet={visualSetByAgent.get(agent.id)}
+                    statusClassName={agentStatusDot[agent.status] ?? agentStatusDotDefault}
+                  />
                 }
                 trailing={
                   <div className="flex items-center gap-3">
@@ -294,7 +311,15 @@ export function Agents() {
       {effectiveView === "org" && filteredOrg.length > 0 && (
         <div className="border border-border py-1">
           {filteredOrg.map((node) => (
-            <OrgTreeNode key={node.id} node={node} depth={0} agentMap={agentMap} liveRunByAgent={liveRunByAgent} tab={tab} />
+            <OrgTreeNode
+              key={node.id}
+              node={node}
+              depth={0}
+              agentMap={agentMap}
+              liveRunByAgent={liveRunByAgent}
+              visualSetByAgent={visualSetByAgent}
+              tab={tab}
+            />
           ))}
         </div>
       )}
@@ -319,12 +344,14 @@ function OrgTreeNode({
   depth,
   agentMap,
   liveRunByAgent,
+  visualSetByAgent,
   tab,
 }: {
   node: OrgNode;
   depth: number;
   agentMap: Map<string, Agent>;
   liveRunByAgent: Map<string, { runId: string; liveCount: number }>;
+  visualSetByAgent: Map<string, KawaiiAssetSet>;
   tab: FilterTab;
 }) {
   const agent = agentMap.get(node.id);
@@ -337,9 +364,11 @@ function OrgTreeNode({
         to={agent ? agentUrl(agent) : `/agents/${node.id}`}
         className={cn("flex items-center gap-3 px-3 py-2 hover:bg-accent/30 transition-colors w-full text-left no-underline text-inherit", agent?.pausedAt && tab !== "paused" && "opacity-50")}
       >
-        <span className="relative flex h-2.5 w-2.5 shrink-0">
-          <span className={`absolute inline-flex h-full w-full rounded-full ${statusColor}`} />
-        </span>
+        <KawaiiAgentAvatar
+          assetSet={visualSetByAgent.get(node.id)}
+          statusClassName={statusColor}
+          className="shrink-0"
+        />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium">{node.name}</span>
           <span className="text-xs text-muted-foreground ml-2">
@@ -392,7 +421,15 @@ function OrgTreeNode({
       {node.reports && node.reports.length > 0 && (
         <div className="border-l border-border/50 ml-4">
           {node.reports.map((child) => (
-            <OrgTreeNode key={child.id} node={child} depth={depth + 1} agentMap={agentMap} liveRunByAgent={liveRunByAgent} tab={tab} />
+            <OrgTreeNode
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              agentMap={agentMap}
+              liveRunByAgent={liveRunByAgent}
+              visualSetByAgent={visualSetByAgent}
+              tab={tab}
+            />
           ))}
         </div>
       )}

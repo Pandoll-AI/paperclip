@@ -1,0 +1,8 @@
+{
+  "_fetched_from": "https://developers.openai.com/api/docs/models",
+  "_fetched_at": "2026-05-12T00:00:00Z",
+  "chat": "gpt-5.4-mini",
+  "fast_complex": "gpt-5.3-codex-spark",
+  "code": "gpt-5.3-codex",
+  "reasoning": "gpt-5.5"
+}

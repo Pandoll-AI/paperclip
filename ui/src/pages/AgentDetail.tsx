@@ -30,6 +30,7 @@ import { useAdapterCapabilities } from "@/adapters/use-adapter-capabilities";
 import { redactCommandText as redactCommandSecretText } from "@paperclipai/adapter-utils";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { assetsApi } from "../api/assets";
+import { kawaiiAssetsApi } from "../api/kawaiiAssets";
 import { getUIAdapter, buildTranscript, onAdapterChange } from "../adapters";
 import { StatusBadge } from "../components/StatusBadge";
 import { agentStatusDot, agentStatusDotDefault } from "../lib/status-colors";
@@ -79,6 +80,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { AgentIcon, AgentIconPicker } from "../components/AgentIconPicker";
+import { KawaiiAgentVisualPanel } from "../kawaii/KawaiiAgentVisualPanel";
+import { needsKawaiiPolling } from "../kawaii/assets";
 import { RunTranscriptView, type TranscriptMode } from "../components/transcript/RunTranscriptView";
 import {
   isUuidLike,
@@ -702,6 +705,20 @@ export function AgentDetail() {
     staleTime: 5_000,
   });
 
+  const { data: kawaiiAgentAssetSets } = useQuery({
+    queryKey: resolvedCompanyId && resolvedAgentId
+      ? queryKeys.kawaiiAssets.agent(resolvedCompanyId, resolvedAgentId)
+      : ["kawaii-assets", "agent", "__none__"],
+    queryFn: () =>
+      kawaiiAssetsApi.list(resolvedCompanyId!, {
+        ownerType: "agent",
+        ownerId: resolvedAgentId!,
+        purpose: "staff_character",
+      }),
+    enabled: !!resolvedCompanyId && !!resolvedAgentId,
+    refetchInterval: (query) => needsKawaiiPolling(query.state.data) ? 4_000 : false,
+  });
+
   const assignedIssues = (allIssues ?? [])
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const reportsToAgent = (allAgents ?? []).find((a) => a.id === agent?.reportsTo);
@@ -823,6 +840,19 @@ export function AgentDetail() {
     },
   });
 
+  const regenerateKawaiiAssets = useMutation({
+    mutationFn: () => kawaiiAssetsApi.regenerateAgent(resolvedAgentId!),
+    onSuccess: () => {
+      if (!resolvedCompanyId || !resolvedAgentId) return;
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.kawaiiAssets.agent(resolvedCompanyId, resolvedAgentId),
+      });
+    },
+    onError: (err) => {
+      setActionError(err instanceof Error ? err.message : "Failed to regenerate visual assets");
+    },
+  });
+
   const updateIcon = useMutation({
     mutationFn: (icon: string) => agentsApi.update(agentLookupRef, { icon }, resolvedCompanyId ?? undefined),
     onSuccess: () => {
@@ -913,6 +943,7 @@ export function AgentDetail() {
   }
   const isPendingApproval = agent.status === "pending_approval";
   const showConfigActionBar = (activeView === "configuration" || activeView === "instructions") && (configDirty || configSaving);
+  const kawaiiAgentAssetSet = kawaiiAgentAssetSets?.[0] ?? null;
 
   return (
     <div className={cn("space-y-6", isMobile && showConfigActionBar && "pb-24")}>
@@ -1099,14 +1130,22 @@ export function AgentDetail() {
 
       {/* View content */}
       {activeView === "dashboard" && (
-        <AgentOverview
-          agent={agent}
-          runs={heartbeats ?? []}
-          assignedIssues={assignedIssues}
-          runtimeState={runtimeState}
-          agentId={agent.id}
-          agentRouteId={canonicalAgentRef}
-        />
+        <div className="space-y-6">
+          <KawaiiAgentVisualPanel
+            agent={agent}
+            assetSet={kawaiiAgentAssetSet}
+            regenerating={regenerateKawaiiAssets.isPending}
+            onRegenerate={() => regenerateKawaiiAssets.mutate()}
+          />
+          <AgentOverview
+            agent={agent}
+            runs={heartbeats ?? []}
+            assignedIssues={assignedIssues}
+            runtimeState={runtimeState}
+            agentId={agent.id}
+            agentRouteId={canonicalAgentRef}
+          />
+        </div>
       )}
 
       {activeView === "instructions" && (

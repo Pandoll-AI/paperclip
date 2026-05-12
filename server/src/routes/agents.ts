@@ -54,6 +54,7 @@ import {
   collectAgentAdapterWorkspaceCommandPaths,
 } from "./workspace-command-authz.js";
 import type { PluginWorkerManager } from "../services/plugin-worker-manager.js";
+import type { KawaiiVisualAssetService } from "../services/kawaii-visual-assets.js";
 import { environmentService } from "../services/environments.js";
 import { resolveEnvironmentExecutionTarget } from "../services/environment-execution-target.js";
 import { environmentRuntimeService } from "../services/environment-runtime.js";
@@ -117,7 +118,10 @@ function readLiveRunsQueryInt(value: unknown, max: number, fallback = 0) {
 
 export function agentRoutes(
   db: Db,
-  options: { pluginWorkerManager?: PluginWorkerManager } = {},
+  options: {
+    pluginWorkerManager?: PluginWorkerManager;
+    kawaiiVisualAssets?: KawaiiVisualAssetService;
+  } = {},
 ) {
   // Legacy hardcoded maps — used as fallback when adapter module does not
   // declare capability flags explicitly.
@@ -2118,6 +2122,8 @@ export function agentRoutes(
       });
     }
 
+    void options.kawaiiVisualAssets?.enqueueStaffSet(agent).catch(() => undefined);
+
     res.status(201).json({ agent, approval });
   });
 
@@ -2237,6 +2243,8 @@ export function agentRoutes(
         actor.actorType === "user" ? actor.actorId : null,
       );
     }
+
+    void options.kawaiiVisualAssets?.enqueueStaffSet(agent).catch(() => undefined);
 
     res.status(201).json(agent);
   });

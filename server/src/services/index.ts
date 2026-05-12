@@ -5,6 +5,7 @@ export { companySkillService } from "./company-skills.js";
 export { agentService, deduplicateAgentName } from "./agents.js";
 export { agentInstructionsService, syncInstructionsBundleConfigFromFilePath } from "./agent-instructions.js";
 export { assetService } from "./assets.js";
+export { kawaiiVisualAssetService, type KawaiiVisualAssetService } from "./kawaii-visual-assets.js";
 export { documentService, extractLegacyPlanBody } from "./documents.js";
 export {
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,

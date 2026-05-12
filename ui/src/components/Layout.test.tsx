@@ -44,6 +44,12 @@ vi.mock("./Sidebar", () => ({
   Sidebar: () => <div>Main company nav</div>,
 }));
 
+vi.mock("../kawaii/KawaiiShell", () => ({
+  KawaiiSidebar: () => <div>Kawaii company nav</div>,
+  KawaiiTopBar: () => <div>Kawaii top bar</div>,
+  KawaiiDialogueDock: () => <div>Kawaii dialogue dock</div>,
+}));
+
 vi.mock("./InstanceSidebar", () => ({
   InstanceSidebar: () => <div>Instance sidebar</div>,
 }));
@@ -254,7 +260,7 @@ describe("Layout", () => {
     await flushReact();
 
     expect(mockHealthApi.get).toHaveBeenCalled();
-    expect(container.textContent).toContain("Breadcrumbs");
+    expect(container.textContent).toContain("Kawaii top bar");
     expect(container.textContent).toContain("Outlet content");
     expect(container.textContent).not.toContain("Company rail");
     expect(container.textContent).not.toContain("Authenticated private");
@@ -267,7 +273,35 @@ describe("Layout", () => {
     });
   });
 
-  it("renders the company settings sidebar on company settings routes", async () => {
+  it("wraps company settings routes in the kawaii shell by default", async () => {
+    currentPathname = "/PAP/company/settings/access";
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <Layout />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+    await flushReact();
+
+    expect(container.textContent).toContain("Kawaii top bar");
+    expect(container.textContent).toContain("Kawaii company nav");
+    expect(container.textContent).toContain("Kawaii dialogue dock");
+    expect(container.textContent).not.toContain("Company settings sidebar");
+    expect(container.textContent).not.toContain("Main company nav");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("keeps the company settings sidebar when a plugin route sidebar targets company settings", async () => {
     currentPathname = "/PAP/company/settings/access";
     mockPluginSlots.slots = [
       {
@@ -518,7 +552,7 @@ describe("Layout", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Main company nav");
+    expect(container.textContent).toContain("Kawaii company nav");
     expect(container.textContent).not.toContain("Plugin route sidebar");
 
     await act(async () => {

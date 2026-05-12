@@ -12,6 +12,7 @@ coverage/
 .DS_Store
 data/
 .paperclip/
+.codex-llm/logs/
 .pnpm-store/
 tmp-*
 cli/tmp/

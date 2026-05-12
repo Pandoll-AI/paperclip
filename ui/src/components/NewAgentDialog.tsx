@@ -20,6 +20,7 @@ import { listUIAdapters } from "../adapters";
 import { isVisualAdapterChoice } from "../adapters/metadata";
 import { getAdapterDisplay } from "../adapters/adapter-display-registry";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
+import { kawaiiCeoHonorific } from "../kawaii/display";
 
 /**
  * Adapter types that are suitable for agent creation (excludes internal
@@ -33,10 +34,11 @@ function isAgentAdapterType(type: string): boolean {
 
 export function NewAgentDialog() {
   const { newAgentOpen, closeNewAgent, openNewIssue } = useDialog();
-  const { selectedCompanyId } = useCompany();
+  const { selectedCompany, selectedCompanyId } = useCompany();
   const navigate = useNavigate();
   const [showAdvancedCards, setShowAdvancedCards] = useState(false);
   const disabledTypes = useDisabledAdaptersSync();
+  const ceoHonorific = kawaiiCeoHonorific(selectedCompany);
 
   // Fetch registered adapters from server (syncs disabled store + provides data)
   const { data: serverAdapters } = useQuery({
@@ -116,11 +118,14 @@ export function NewAgentDialog() {
     >
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-md p-0 gap-0 overflow-hidden"
+        className="kawaii-new-agent sm:max-w-3xl p-0 gap-0"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-          <span className="text-sm text-muted-foreground">Add a new agent</span>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(255,127,110,0.18)] bg-[rgba(255,245,235,0.72)]">
+          <div>
+            <span className="font-serif text-xl text-[#38251f]">Staff Appointment Room</span>
+            <p className="text-xs text-[#8d6b5c]">{ceoHonorific}, 새 Staff를 임명할 준비가 되었어요.</p>
+          </div>
           <Button
             variant="ghost"
             size="icon-xs"
@@ -134,24 +139,36 @@ export function NewAgentDialog() {
           </Button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="grid gap-0 md:grid-cols-[0.9fr_1.1fr]">
+          <div className="relative min-h-[360px] overflow-hidden bg-[linear-gradient(135deg,#ffe2cf,#fff8ea_52%,#dff3e6)]">
+            <div className="absolute left-8 top-8 h-40 w-32 rounded-2xl border-8 border-white/60 bg-[linear-gradient(180deg,#ffd0b5,#fff2d6)]" />
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-[rgba(139,83,45,0.18)]" />
+            <div className="absolute bottom-12 right-7 h-52 w-40 rounded-[48%_48%_36%_36%] bg-[linear-gradient(135deg,#ff987a,#d97955)] shadow-2xl">
+              <div className="absolute left-1/2 top-16 h-24 w-20 -translate-x-1/2 rounded-[48%] bg-[#ffe2d4]" />
+              <div className="absolute bottom-0 left-1/2 h-24 w-32 -translate-x-1/2 rounded-t-[48%] bg-[#fff7ec]" />
+            </div>
+            <div className="absolute bottom-6 left-6 right-6 rounded-2xl bg-white/75 p-4 shadow-xl backdrop-blur">
+              <p className="text-sm font-semibold text-[#9a5d29]">Royal Hiring Attendant</p>
+              <p className="mt-1 text-sm text-[#5f3b2b]">새 Staff가 태어나면 백그라운드에서 캐릭터 세트도 함께 그릴게요.</p>
+            </div>
+          </div>
+          <div className="p-7 space-y-6">
           {!showAdvancedCards ? (
             <>
               {/* Recommendation */}
               <div className="text-center space-y-3">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent">
-                  <Bot className="h-6 w-6 text-foreground" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0df] text-[#ff7f6e]">
+                  <Bot className="h-7 w-7" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  We recommend letting your CEO handle agent setup — they know the
-                  org structure and can configure reporting, permissions, and
-                  adapters.
+                <p className="text-sm leading-7 text-[#6f5044]">
+                  {ceoHonorific}의 명령으로 Staff 임명 퀘스트를 만들까요? 조직 구조, 권한, 어댑터는 CEO Agent가 확인하고
+                  생성 이후 Staff Room에 새 캐릭터 제작 상태를 표시합니다.
                 </p>
               </div>
 
-              <Button className="w-full" size="lg" onClick={handleAskCeo}>
+              <Button className="w-full bg-[#ff7f6e] text-white hover:bg-[#ff6f5d]" size="lg" onClick={handleAskCeo}>
                 <Bot className="h-4 w-4 mr-2" />
-                Ask the CEO to create a new agent
+                CEO Agent에게 새 Staff 임명 요청
               </Button>
 
               {/* Advanced link */}
@@ -160,7 +177,7 @@ export function NewAgentDialog() {
                   className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
                   onClick={handleAdvancedConfig}
                 >
-                  I want advanced configuration myself
+                  제가 직접 고급 설정을 하겠습니다
                 </button>
               </div>
             </>
@@ -175,7 +192,7 @@ export function NewAgentDialog() {
                   Back
                 </button>
                 <p className="text-sm text-muted-foreground">
-                  Choose your adapter type for advanced setup.
+                  고급 설정용 어댑터 타입을 선택하세요.
                 </p>
               </div>
 
@@ -208,6 +225,7 @@ export function NewAgentDialog() {
               </div>
             </>
           )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

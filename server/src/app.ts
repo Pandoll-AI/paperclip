@@ -37,6 +37,7 @@ import {
 import { llmRoutes } from "./routes/llms.js";
 import { authRoutes } from "./routes/auth.js";
 import { assetRoutes } from "./routes/assets.js";
+import { kawaiiAssetRoutes } from "./routes/kawaii-assets.js";
 import { accessRoutes } from "./routes/access.js";
 import { pluginRoutes } from "./routes/plugins.js";
 import { adapterRoutes } from "./routes/adapters.js";
@@ -59,6 +60,7 @@ import { pluginRegistryService } from "./services/plugin-registry.js";
 import { createHostClientHandlers } from "@paperclipai/plugin-sdk";
 import type { BetterAuthSessionResult } from "./auth/better-auth.js";
 import { createCachedViteHtmlRenderer } from "./vite-html-renderer.js";
+import { kawaiiVisualAssetService } from "./services/kawaii-visual-assets.js";
 
 type UiMode = "none" | "static" | "vite-dev";
 const FEEDBACK_EXPORT_FLUSH_INTERVAL_MS = 5_000;
@@ -174,6 +176,10 @@ export async function createApp(
 
   const hostServicesDisposers = new Map<string, () => void>();
   const workerManager = opts.pluginWorkerManager ?? createPluginWorkerManager();
+  const kawaiiVisualAssets = kawaiiVisualAssetService(db, opts.storageService);
+  void kawaiiVisualAssets.recoverPendingJobs().catch((err) => {
+    logger.warn({ err }, "failed to recover pending kawaii visual asset jobs");
+  });
 
   // Mount API routes
   const api = Router();
@@ -189,8 +195,9 @@ export async function createApp(
   );
   api.use("/companies", companyRoutes(db, opts.storageService));
   api.use(companySkillRoutes(db));
-  api.use(agentRoutes(db, { pluginWorkerManager: workerManager }));
+  api.use(agentRoutes(db, { pluginWorkerManager: workerManager, kawaiiVisualAssets }));
   api.use(assetRoutes(db, opts.storageService));
+  api.use(kawaiiAssetRoutes(db, { service: kawaiiVisualAssets }));
   api.use(projectRoutes(db));
   api.use(issueRoutes(db, opts.storageService, {
     feedbackExportService: opts.feedbackExportService,
