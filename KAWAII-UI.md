@@ -38,6 +38,7 @@ The kawaii layer changes presentation, not authority or safety semantics.
 Display model:
 - The user is the operator and is shown as `CEO, {username}`.
 - The user/CEO avatar is always a faceless dotted outline.
+- The CEO appears as an owner/operator card, not as a Staff roster member.
 - Staff are AI agents and are shown as characters.
 - Staff labels use only `{title}, {firstName}`.
 - Backend or seeded agents with a CEO role are visually remapped to Staff roles such as CTO. The UI must not imply that an agent is the human user.
@@ -80,6 +81,7 @@ Purpose:
 Display rules:
 - Staff names use `kawaiiStaffLabel(agent)`.
 - Staff avatars use `KawaiiAgentAvatar`.
+- The CEO owner card sits outside the Staff roster and uses the faceless user outline.
 - The Staff preview should show a small, scannable roster, not full detail.
 - Active route styling should be obvious without breaking the soft visual tone.
 
@@ -104,7 +106,7 @@ Purpose:
 
 Display rules:
 - Native kawaii pages should use `kawaii-page`, `kawaii-panel`, `kawaii-card`, and related classes.
-- Legacy bodies are allowed during migration, but only inside the kawaii shell.
+- Legacy bodies are allowed during migration, but only inside the kawaii shell and `KawaiiPageSurface`.
 - Legacy pages should not introduce a second global sidebar, fixed footer, or body-level scroll.
 - Cards are for repeated items, framed tools, or decision panels. Avoid decorative card stacking.
 

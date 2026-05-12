@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { NavLink, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -87,6 +88,11 @@ export function KawaiiSidebar() {
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { openNewIssue } = useDialogActions();
   const prefix = selectedCompany?.issuePrefix ?? null;
+  const { data: session } = useQuery({
+    queryKey: queryKeys.auth.session,
+    queryFn: () => authApi.getSession(),
+    retry: false,
+  });
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId ?? "__none__"),
     queryFn: () => agentsApi.list(selectedCompanyId!),
@@ -133,6 +139,15 @@ export function KawaiiSidebar() {
         })}
       </nav>
 
+      <section className="kawaii-sidebar__owner" aria-label="CEO owner">
+        <KawaiiAgentAvatar variant="user" className="kawaii-sidebar__owner-avatar" />
+        <div>
+          <p>CEO</p>
+          <strong>{kawaiiCeoLabel(session)}</strong>
+          <span>Owner approval</span>
+        </div>
+      </section>
+
       <div className="kawaii-sidebar__staff">
         <p>Staff</p>
         {(agents ?? []).slice(0, 5).map((agent, index) => (
@@ -151,6 +166,30 @@ export function KawaiiSidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+const nativeKawaiiRoutePatterns = [
+  /\/dashboard\/?$/,
+  /\/agents\/(?:all|active|paused|error)\/?$/,
+  /\/approvals\/(?:pending|all)\/?$/,
+];
+
+function usesNativeKawaiiBody(pathname: string) {
+  return nativeKawaiiRoutePatterns.some((pattern) => pattern.test(pathname));
+}
+
+export function KawaiiPageSurface({ children }: { children: ReactNode }) {
+  const location = useLocation();
+
+  if (usesNativeKawaiiBody(location.pathname)) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="kawaii-legacy-frame">
+      {children}
+    </div>
   );
 }
 
