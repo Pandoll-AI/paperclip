@@ -170,12 +170,12 @@ export function KawaiiSidebar() {
 }
 
 const nativeKawaiiRoutePatterns = [
-  /\/dashboard\/?$/,
-  /\/agents\/(?:all|active|paused|error)\/?$/,
-  /\/approvals\/(?:pending|all)\/?$/,
+  /^\/(?:[^/]+\/)?dashboard\/?$/,
+  /^\/(?:[^/]+\/)?agents\/(?:all|active|paused|error)\/?$/,
+  /^\/(?:[^/]+\/)?approvals\/(?:pending|all)\/?$/,
 ];
 
-function usesNativeKawaiiBody(pathname: string) {
+export function usesNativeKawaiiBody(pathname: string) {
   return nativeKawaiiRoutePatterns.some((pattern) => pattern.test(pathname));
 }
 
