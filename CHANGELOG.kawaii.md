@@ -12,3 +12,4 @@
 - Hardened the launcher so help flags are side-effect free and the default fork launch path starts from an available 3101+ port unless a port is explicitly configured.
 - Validated kawaii menu targets against known routes and fixed mismatched runtime and project-creation menu actions.
 - Polished Kawaii interaction and identity rules across alarm controls, dialogue choices, Staff display, Korean copy, and Staff Room character staging.
+- Fixed the Rika dialogue scene hand artifact, tightened Staff image prompts against duplicate hands/arms, and remapped Staff Room arrow buttons to cycle detail panels instead of Staff people.

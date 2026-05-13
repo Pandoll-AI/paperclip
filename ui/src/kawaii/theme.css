@@ -1222,13 +1222,63 @@
 }
 
 .kawaii-profile-grid {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kawaii-profile-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 8px;
+}
+
+.kawaii-profile-tab {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 127, 110, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 253, 247, 0.62);
+  padding: 10px 11px;
+  color: rgba(56, 37, 31, 0.68);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.kawaii-profile-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.34);
+  background: rgba(255, 248, 240, 0.9);
+}
+
+.kawaii-profile-tab.is-active {
+  border-color: rgba(151, 103, 224, 0.42);
+  background: rgba(248, 237, 255, 0.82);
+  box-shadow: 0 10px 24px rgba(122, 77, 162, 0.1);
+  color: var(--kawaii-ink);
+}
+
+.kawaii-profile-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kawaii-profile-card {
   padding: 16px;
+}
+
+.kawaii-profile-card--featured {
+  min-height: 310px;
+}
+
+.kawaii-profile-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .kawaii-list {

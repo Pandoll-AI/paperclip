@@ -20,6 +20,19 @@ import { kawaiiCeoLabel, kawaiiStaffDisplayParts, kawaiiStaffTitle } from "./dis
 import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 
 export type KawaiiStaffFilterTab = "all" | "active" | "paused" | "error";
+export type KawaiiStaffInfoPanelKey = "basic" | "signal" | "quest" | "org";
+
+const kawaiiStaffInfoPanels = [
+  { key: "basic", label: "기본 정보", Icon: Shield, className: "text-orange-500" },
+  { key: "signal", label: "운영 신호", Icon: Target, className: "text-green-500" },
+  { key: "quest", label: "배정된 Quest", Icon: FileText, className: "text-coral-500" },
+  { key: "org", label: "조직", Icon: Users, className: "text-purple-500" },
+] satisfies Array<{
+  key: KawaiiStaffInfoPanelKey;
+  label: string;
+  Icon: typeof Shield;
+  className: string;
+}>;
 
 function mapVisuals(sets: KawaiiAssetSet[] | undefined) {
   const map = new Map<string, KawaiiAssetSet>();
@@ -62,6 +75,16 @@ function displayParts(agent: Agent | null, index?: number) {
   return kawaiiStaffDisplayParts(agent, characterForAgent(agent, index).name);
 }
 
+export function nextKawaiiStaffInfoPanel(
+  current: KawaiiStaffInfoPanelKey,
+  delta: number,
+): KawaiiStaffInfoPanelKey {
+  const currentIndex = kawaiiStaffInfoPanels.findIndex((panel) => panel.key === current);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const nextIndex = (safeIndex + delta + kawaiiStaffInfoPanels.length) % kawaiiStaffInfoPanels.length;
+  return kawaiiStaffInfoPanels[nextIndex]!.key;
+}
+
 export function KawaiiStaffRoom() {
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
@@ -69,6 +92,7 @@ export function KawaiiStaffRoom() {
   const { backgroundImage } = useKawaiiSceneAssets();
   const location = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedInfoPanel, setSelectedInfoPanel] = useState<KawaiiStaffInfoPanelKey>("basic");
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Staff Room" }]);
@@ -130,11 +154,57 @@ export function KawaiiStaffRoom() {
     }
   }, [visibleAgents, selectedId]);
 
-  function selectRelativeStaff(delta: number) {
-    if (visibleAgents.length <= 1) return;
-    const currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
-    const nextIndex = (currentIndex + delta + visibleAgents.length) % visibleAgents.length;
-    setSelectedId(visibleAgents[nextIndex]!.id);
+  const selectedInfoPanelMeta =
+    kawaiiStaffInfoPanels.find((panel) => panel.key === selectedInfoPanel) ?? kawaiiStaffInfoPanels[0]!;
+  const SelectedInfoIcon = selectedInfoPanelMeta.Icon;
+
+  function selectRelativeInfoPanel(delta: number) {
+    setSelectedInfoPanel((current) => nextKawaiiStaffInfoPanel(current, delta));
+  }
+
+  function renderSelectedInfoPanel() {
+    if (selectedInfoPanel === "signal") {
+      return (
+        <div className="kawaii-list">
+          <div><span>이번 달 지출</span><strong>{selected ? formatCents(selected.spentMonthlyCents ?? 0) : "-"}</strong></div>
+          <div><span>예산 한도</span><strong>{selected ? formatCents(selected.budgetMonthlyCents ?? 0) : "-"}</strong></div>
+          <div><span>마지막 신호</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
+          <div><span>일시정지 사유</span><strong>{selected?.pauseReason ?? "없음"}</strong></div>
+        </div>
+      );
+    }
+
+    if (selectedInfoPanel === "quest") {
+      return (
+        <div className="kawaii-list">
+          {(assignedIssues ?? []).slice(0, 4).map((issue) => (
+            <div key={issue.id}>
+              <span>{issue.identifier ?? issue.title}</span>
+              <strong>{issue.status.replace(/_/g, " ")}</strong>
+            </div>
+          ))}
+          {(assignedIssues ?? []).length === 0 && <div><span>배정된 Quest 없음</span><strong>정리됨</strong></div>}
+        </div>
+      );
+    }
+
+    if (selectedInfoPanel === "org") {
+      return (
+        <div className="kawaii-list">
+          <div><span>보고 대상</span><strong>{selectedManagerDisplay?.label ?? kawaiiCeoLabel(session)}</strong></div>
+          <div><span>직접 보고</span><strong>{directReportCount}</strong></div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="kawaii-list">
+        <div><span>이름</span><strong>{selectedDisplay?.name ?? "-"}</strong></div>
+        <div><span>직책</span><strong>{selectedDisplay?.title ?? "-"}</strong></div>
+        <div><span>상태</span><strong>{selected?.status ?? "-"}</strong></div>
+        <div><span>어댑터</span><strong>{selected?.adapterType ?? "-"}</strong></div>
+      </div>
+    );
   }
 
   return (
@@ -175,9 +245,10 @@ export function KawaiiStaffRoom() {
             <button
               type="button"
               className="kawaii-staff-stage__nav kawaii-staff-stage__nav--prev"
-              onClick={() => selectRelativeStaff(-1)}
-              disabled={visibleAgents.length <= 1}
-              aria-label="이전 Staff"
+              onClick={() => selectRelativeInfoPanel(-1)}
+              disabled={!selected}
+              aria-label="이전 정보 패널"
+              title="이전 정보 패널"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -192,9 +263,10 @@ export function KawaiiStaffRoom() {
             <button
               type="button"
               className="kawaii-staff-stage__nav kawaii-staff-stage__nav--next"
-              onClick={() => selectRelativeStaff(1)}
-              disabled={visibleAgents.length <= 1}
-              aria-label="다음 Staff"
+              onClick={() => selectRelativeInfoPanel(1)}
+              disabled={!selected}
+              aria-label="다음 정보 패널"
+              title="다음 정보 패널"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -210,46 +282,27 @@ export function KawaiiStaffRoom() {
       </section>
 
       <section className="kawaii-profile-grid">
-        <div className="kawaii-panel kawaii-profile-card">
-          <Shield className="h-5 w-5 text-orange-500" />
-          <strong>기본 정보</strong>
-          <div className="kawaii-list">
-            <div><span>이름</span><strong>{selectedDisplay?.name ?? "-"}</strong></div>
-            <div><span>직책</span><strong>{selectedDisplay?.title ?? "-"}</strong></div>
-            <div><span>상태</span><strong>{selected?.status ?? "-"}</strong></div>
-            <div><span>어댑터</span><strong>{selected?.adapterType ?? "-"}</strong></div>
-          </div>
+        <div className="kawaii-profile-tabs" role="tablist" aria-label="Staff 정보 패널">
+          {kawaiiStaffInfoPanels.map((panel) => (
+            <button
+              type="button"
+              key={panel.key}
+              role="tab"
+              aria-selected={selectedInfoPanel === panel.key}
+              className={selectedInfoPanel === panel.key ? "kawaii-profile-tab is-active" : "kawaii-profile-tab"}
+              onClick={() => setSelectedInfoPanel(panel.key)}
+            >
+              <panel.Icon className={`h-4 w-4 ${panel.className}`} />
+              <span>{panel.label}</span>
+            </button>
+          ))}
         </div>
-        <div className="kawaii-panel kawaii-profile-card">
-          <Target className="h-5 w-5 text-green-500" />
-          <strong>운영 신호</strong>
-          <div className="kawaii-list">
-            <div><span>이번 달 지출</span><strong>{selected ? formatCents(selected.spentMonthlyCents ?? 0) : "-"}</strong></div>
-            <div><span>예산 한도</span><strong>{selected ? formatCents(selected.budgetMonthlyCents ?? 0) : "-"}</strong></div>
-            <div><span>마지막 신호</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
-            <div><span>일시정지 사유</span><strong>{selected?.pauseReason ?? "없음"}</strong></div>
+        <div className="kawaii-panel kawaii-profile-card kawaii-profile-card--featured" role="tabpanel">
+          <div className="kawaii-profile-card__heading">
+            <SelectedInfoIcon className={`h-5 w-5 ${selectedInfoPanelMeta.className}`} />
+            <strong>{selectedInfoPanelMeta.label}</strong>
           </div>
-        </div>
-        <div className="kawaii-panel kawaii-profile-card">
-          <FileText className="h-5 w-5 text-coral-500" />
-          <strong>배정된 Quest</strong>
-          <div className="kawaii-list">
-            {(assignedIssues ?? []).slice(0, 4).map((issue) => (
-              <div key={issue.id}>
-                <span>{issue.identifier ?? issue.title}</span>
-                <strong>{issue.status.replace(/_/g, " ")}</strong>
-              </div>
-            ))}
-            {(assignedIssues ?? []).length === 0 && <div><span>배정된 Quest 없음</span><strong>정리됨</strong></div>}
-          </div>
-        </div>
-        <div className="kawaii-panel kawaii-profile-card">
-          <Users className="h-5 w-5 text-purple-500" />
-          <strong>조직</strong>
-          <div className="kawaii-list">
-            <div><span>보고 대상</span><strong>{selectedManagerDisplay?.label ?? kawaiiCeoLabel(session)}</strong></div>
-            <div><span>직접 보고</span><strong>{directReportCount}</strong></div>
-          </div>
+          {renderSelectedInfoPanel()}
         </div>
       </section>
     </div>

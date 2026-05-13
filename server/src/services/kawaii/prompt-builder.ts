@@ -46,6 +46,9 @@ const baseNegative = [
   "logo",
   "UI chrome",
   "extra fingers",
+  "extra hands",
+  "extra arms",
+  "duplicate limbs",
   "distorted hands",
   "photorealistic face",
   "skin discoloration",
@@ -116,6 +119,7 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
     "Character placement: full body on the right side, character center at 76% of canvas width, body height 82-90% of canvas height, head top between 5-10%, feet between 92-97%, right edge no closer than 4%, no clipping.",
     "Leave the left 58% of the canvas as readable warm office atmosphere for the interface text layer.",
     "Preserve the source character identity, face, hair, outfit family, pose language, both legs, both feet, both shoes, both arms, hands, and accessories.",
+    "Anatomy constraint: exactly two arms and exactly two hands total; do not add a duplicate raised hand when the character holds an accessory.",
     "Paint the room behind and around the character so the final image feels like a single illustrated scene.",
   ].join(" ");
   const sceneNegativePrompt = [
@@ -136,6 +140,7 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
     "Generate a background-removed visual novel dialogue cut-in PNG.",
     "Crop is waist-up, ending at the waist or upper abdomen; no legs or lower body are visible.",
     "Head, hair, shoulders, hands, and role accessory remain visible.",
+    "Anatomy constraint: exactly two arms and exactly two hands total; accessories must not create extra hands.",
     "Character faces slightly toward the CEO/operator and fits a lower-right dialogue dock.",
     "No scene background, no rectangle, no frame, no UI text.",
   ].join(" ");
