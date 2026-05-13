@@ -824,12 +824,20 @@ function createIssueBlockerAttention(input: Partial<IssueBlockerAttention> = {})
     stalledBlockerCount: input.stalledBlockerCount ?? 0,
     attentionBlockerCount: input.attentionBlockerCount ?? 0,
     sampleBlockerIdentifier: input.sampleBlockerIdentifier ?? null,
+    sampleBlockerOwnerHint: input.sampleBlockerOwnerHint ?? null,
     sampleStalledBlockerIdentifier: input.sampleStalledBlockerIdentifier ?? null,
+    sampleStalledBlockerOwnerHint: input.sampleStalledBlockerOwnerHint ?? null,
   };
 }
 
 function blockerSampleIdentifier(node: IssueBlockerAttentionNode | null | undefined) {
   return node?.identifier ?? node?.id ?? null;
+}
+
+function blockerOwnerHint(node: IssueBlockerAttentionNode | null | undefined) {
+  if (node?.assigneeUserId) return `user:${node.assigneeUserId}`;
+  if (node?.assigneeAgentId) return `agent:${node.assigneeAgentId}`;
+  return null;
 }
 
 function appendBlockerAttentionEdges(
@@ -1288,45 +1296,120 @@ async function listIssueBlockerAttentionMap(
     covered: boolean;
     stalled: boolean;
     sampleBlockerIdentifier: string | null;
+    sampleBlockerOwnerHint: string | null;
     sampleStalledBlockerIdentifier: string | null;
+    sampleStalledBlockerOwnerHint: string | null;
   };
   const classifyPath = (
     nodeId: string,
     seen: Set<string>,
   ): PathClassification => {
-    const sample = blockerSampleIdentifier(nodesById.get(nodeId));
-    if (truncated || seen.has(nodeId)) {
-      return { covered: false, stalled: false, sampleBlockerIdentifier: sample, sampleStalledBlockerIdentifier: null };
-    }
     const node = nodesById.get(nodeId);
+    const sample = blockerSampleIdentifier(node);
+    const sampleOwner = blockerOwnerHint(node);
+    if (truncated || seen.has(nodeId)) {
+      return {
+        covered: false,
+        stalled: false,
+        sampleBlockerIdentifier: sample,
+        sampleBlockerOwnerHint: sampleOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
+    }
     if (!node || node.companyId !== companyId) {
-      return { covered: false, stalled: false, sampleBlockerIdentifier: nodeId, sampleStalledBlockerIdentifier: null };
+      const missingBlocker = sample ?? nodeId;
+      return {
+        covered: false,
+        stalled: false,
+        sampleBlockerIdentifier: missingBlocker,
+        sampleBlockerOwnerHint: sampleOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     const nodeSample = blockerSampleIdentifier(node);
+    const nodeOwner = blockerOwnerHint(node);
     if (node.status === "done") {
-      return { covered: true, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: true,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     if (explicitWaitingIssueIds.has(node.id)) {
-      return { covered: true, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: true,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     if (node.assigneeUserId && node.status !== "cancelled") {
-      return { covered: true, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: true,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     if (node.status === "in_review") {
       const hasWaitingPath = activeIssueIds.has(node.id) || Boolean(node.assigneeUserId);
       if (hasWaitingPath) {
-        return { covered: true, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+        return {
+          covered: true,
+          stalled: false,
+          sampleBlockerIdentifier: nodeSample,
+          sampleBlockerOwnerHint: nodeOwner,
+          sampleStalledBlockerIdentifier: null,
+          sampleStalledBlockerOwnerHint: null,
+        };
       }
-      return { covered: false, stalled: true, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: nodeSample };
+      return {
+        covered: false,
+        stalled: true,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: nodeSample,
+        sampleStalledBlockerOwnerHint: nodeOwner,
+      };
     }
     if (activeIssueIds.has(node.id)) {
-      return { covered: true, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: true,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     if (node.status === "cancelled") {
-      return { covered: false, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: false,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
     if (node.status === "backlog" && node.assigneeAgentId) {
-      return { covered: false, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+      return {
+        covered: false,
+        stalled: false,
+        sampleBlockerIdentifier: nodeSample,
+        sampleBlockerOwnerHint: nodeOwner,
+        sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
+      };
     }
 
     const downstream = (edgesByIssueId.get(node.id) ?? []).filter((edge) => nodesById.get(edge.blockerIssueId)?.status !== "done");
@@ -1336,13 +1419,16 @@ async function listIssueBlockerAttentionMap(
       const classified = downstream.map((edge) => classifyPath(edge.blockerIssueId, nextSeen));
       const stalledChild = classified.find((result) => result.stalled || result.sampleStalledBlockerIdentifier);
       const sampleStalled = stalledChild?.sampleStalledBlockerIdentifier ?? null;
+      const sampleStalledOwner = stalledChild?.sampleStalledBlockerOwnerHint ?? null;
       const hardAttention = classified.find((result) => !result.covered && !result.stalled);
       if (hardAttention) {
         return {
           covered: false,
           stalled: false,
           sampleBlockerIdentifier: hardAttention.sampleBlockerIdentifier,
+          sampleBlockerOwnerHint: hardAttention.sampleBlockerOwnerHint,
           sampleStalledBlockerIdentifier: sampleStalled,
+          sampleStalledBlockerOwnerHint: sampleStalledOwner,
         };
       }
       const stalledEntry = classified.find((result) => result.stalled);
@@ -1351,25 +1437,43 @@ async function listIssueBlockerAttentionMap(
           covered: false,
           stalled: true,
           sampleBlockerIdentifier: stalledEntry.sampleBlockerIdentifier,
+          sampleBlockerOwnerHint: stalledEntry.sampleBlockerOwnerHint,
           sampleStalledBlockerIdentifier: sampleStalled,
+          sampleStalledBlockerOwnerHint: sampleStalledOwner,
         };
       }
       return {
         covered: true,
         stalled: false,
         sampleBlockerIdentifier: classified[0]?.sampleBlockerIdentifier ?? nodeSample,
+        sampleBlockerOwnerHint: classified[0]?.sampleBlockerOwnerHint ?? nodeOwner,
         sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
       };
     }
 
     if (node.assigneeAgentId) {
       const assignee = agentsById.get(node.assigneeAgentId);
       if (!assignee || assignee.companyId !== companyId || !BLOCKER_ATTENTION_INVOKABLE_AGENT_STATUSES.has(assignee.status)) {
-        return { covered: false, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+        return {
+          covered: false,
+          stalled: false,
+          sampleBlockerIdentifier: nodeSample,
+          sampleBlockerOwnerHint: nodeOwner,
+          sampleStalledBlockerIdentifier: null,
+          sampleStalledBlockerOwnerHint: null,
+        };
       }
     }
 
-    return { covered: false, stalled: false, sampleBlockerIdentifier: nodeSample, sampleStalledBlockerIdentifier: null };
+    return {
+      covered: false,
+      stalled: false,
+      sampleBlockerIdentifier: nodeSample,
+      sampleBlockerOwnerHint: nodeOwner,
+      sampleStalledBlockerIdentifier: null,
+      sampleStalledBlockerOwnerHint: null,
+    };
   };
 
   for (const root of roots) {
@@ -1396,6 +1500,9 @@ async function listIssueBlockerAttentionMap(
     const sampleStalledFromChain = classified
       .map((entry) => entry.result.sampleStalledBlockerIdentifier)
       .find((value) => value);
+    const sampleStalledFromChainOwner = classified
+      .map((entry) => entry.result.sampleStalledBlockerOwnerHint)
+      .find((value) => value !== null);
 
     let state: IssueBlockerAttention["state"];
     let reason: IssueBlockerAttention["reason"];
@@ -1420,8 +1527,11 @@ async function listIssueBlockerAttentionMap(
       stalledBlockerCount,
       attentionBlockerCount,
       sampleBlockerIdentifier: sampleEntry?.result.sampleBlockerIdentifier ?? blockerSampleIdentifier(sampleNode),
+      sampleBlockerOwnerHint: sampleEntry?.result.sampleBlockerOwnerHint ?? blockerOwnerHint(sampleNode),
       sampleStalledBlockerIdentifier:
         stalledEntry?.result.sampleStalledBlockerIdentifier ?? sampleStalledFromChain ?? null,
+      sampleStalledBlockerOwnerHint:
+        stalledEntry?.result.sampleStalledBlockerOwnerHint ?? sampleStalledFromChainOwner ?? null,
     }));
   }
 
@@ -2616,6 +2726,7 @@ export function issueService(db: Db) {
           id: issues.id,
           assigneeAgentId: issues.assigneeAgentId,
           status: issues.status,
+          updatedAt: issues.updatedAt,
         })
         .from(issueRelations)
         .innerJoin(issues, eq(issueRelations.relatedIssueId, issues.id))
@@ -2666,6 +2777,7 @@ export function issueService(db: Db) {
         .map((candidate) => ({
           id: candidate.id,
           assigneeAgentId: candidate.assigneeAgentId!,
+          updatedAt: candidate.updatedAt,
           blockerIssueIds: candidate.blockerIssueIds,
         }));
     },
@@ -2677,6 +2789,7 @@ export function issueService(db: Db) {
           assigneeAgentId: issues.assigneeAgentId,
           status: issues.status,
           companyId: issues.companyId,
+          updatedAt: issues.updatedAt,
         })
         .from(issues)
         .where(eq(issues.id, parentIssueId))
@@ -2732,6 +2845,7 @@ export function issueService(db: Db) {
       return {
         id: parent.id,
         assigneeAgentId: parent.assigneeAgentId,
+        updatedAt: parent.updatedAt,
         childIssueIds: children.map((child) => child.id),
         childIssueSummaries,
         childIssueSummaryTruncated: children.length > childIssueSummaries.length,

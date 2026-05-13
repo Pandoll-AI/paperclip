@@ -2173,6 +2173,55 @@ describeEmbeddedPostgres("issueService blockers and dependency wake readiness", 
     ]);
   });
 
+  it("keeps cancelled blockers unresolved for readiness and dependent wakeups", async () => {
+    const companyId = randomUUID();
+    const assigneeAgentId = randomUUID();
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: assigneeAgentId,
+      companyId,
+      name: "CodexCoder",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    });
+
+    const doneBlockerId = randomUUID();
+    const cancelledBlockerId = randomUUID();
+    const blockedIssueId = randomUUID();
+    await db.insert(issues).values([
+      { id: doneBlockerId, companyId, title: "Done blocker", status: "done", priority: "medium" },
+      { id: cancelledBlockerId, companyId, title: "Cancelled blocker", status: "cancelled", priority: "medium" },
+      {
+        id: blockedIssueId,
+        companyId,
+        title: "Blocked issue",
+        status: "blocked",
+        priority: "medium",
+        assigneeAgentId,
+      },
+    ]);
+
+    await svc.update(blockedIssueId, { blockedByIssueIds: [doneBlockerId, cancelledBlockerId] });
+
+    await expect(svc.listWakeableBlockedDependents(doneBlockerId)).resolves.toEqual([]);
+    await expect(svc.listWakeableBlockedDependents(cancelledBlockerId)).resolves.toEqual([]);
+    await expect(svc.getDependencyReadiness(blockedIssueId)).resolves.toMatchObject({
+      unresolvedBlockerIssueIds: [cancelledBlockerId],
+      unresolvedBlockerCount: 1,
+      allBlockersDone: false,
+      isDependencyReady: false,
+    });
+  });
+
   it("reports dependency readiness for blocked issue chains", async () => {
     const companyId = randomUUID();
     await db.insert(companies).values({

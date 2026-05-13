@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import { z } from "zod";
@@ -191,6 +191,29 @@ const ISSUE_WORKSPACE_AUDIT_FIELDS = new Set([
 
 function readNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function buildDependencyWakeIdempotencyKey(input: {
+  reason: "issue_blockers_resolved" | "issue_children_completed";
+  issueId: string;
+  relationIds: string[];
+  issueUpdatedAt: Date | string | null | undefined;
+}) {
+  const relationSignature = [...new Set(input.relationIds)]
+    .filter((id) => typeof id === "string" && id.length > 0)
+    .sort()
+    .join(",");
+  const updatedAtIso =
+    input.issueUpdatedAt instanceof Date
+      ? input.issueUpdatedAt.toISOString()
+      : typeof input.issueUpdatedAt === "string" && input.issueUpdatedAt.length > 0
+        ? input.issueUpdatedAt
+        : "none";
+  const digest = createHash("sha256")
+    .update(`${input.issueId}:${updatedAtIso}:${relationSignature}`)
+    .digest("hex")
+    .slice(0, 20);
+  return `${input.reason}:${input.issueId}:${digest}`;
 }
 
 function hasIssueWorkspaceAuditChange(previous: Record<string, unknown>) {
@@ -2706,6 +2729,29 @@ export function issueRoutes(
       }
     }
 
+    const requestedStatus = typeof updateFields.status === "string" ? updateFields.status : null;
+    const statusTransitionRequested = requestedStatus !== null && requestedStatus !== existing.status;
+    if (statusTransitionRequested) {
+      await logActivity(db, {
+        companyId: existing.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "issue.state_transition.request",
+        entityType: "issue",
+        entityId: existing.id,
+        details: {
+          identifier: existing.identifier,
+          statusFrom: existing.status,
+          statusTo: requestedStatus,
+          commentDriven: Boolean(commentBody),
+          reopenRequested: Boolean(reopenRequested),
+          resumeRequested: resumeRequested === true,
+        },
+      });
+    }
+
     await assertAgentInReviewReviewPath({
       existing,
       updateFields,
@@ -2792,11 +2838,80 @@ export function issueRoutes(
           "issue update rejected with 422",
         );
       }
+      if (statusTransitionRequested) {
+        const statusCode = err instanceof HttpError ? err.status : 500;
+        const reasonCode = (() => {
+          const message = err instanceof Error ? err.message.toLowerCase() : "";
+          if (message.includes("unresolved blockers")) return "unresolved_blockers";
+          if (message.includes("in_progress issues require an assignee")) return "missing_assignee";
+          if (message.includes("unknown issue status") || message.includes("transition")) return "invalid_transition";
+          if (statusCode === 403) return "forbidden";
+          if (statusCode === 409) return "conflict";
+          if (statusCode === 422) return "validation";
+          return "unknown";
+        })();
+
+        const details = {
+          identifier: existing.identifier,
+          attemptedStatus: requestedStatus,
+          attempted_status: requestedStatus,
+          currentStatus: existing.status,
+          current_status: existing.status,
+          reasonCode,
+          reason_code: reasonCode,
+          httpStatus: statusCode,
+          http_status: statusCode,
+          error: err instanceof Error ? err.message : "Transition failed",
+          ...(err instanceof HttpError && err.details && typeof err.details === "object"
+            ? { details: err.details as Record<string, unknown> }
+            : {}),
+        };
+
+        await logActivity(db, {
+          companyId: existing.companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+          action: "issue.state_transition.error",
+          entityType: "issue",
+          entityId: existing.id,
+          details,
+        });
+        await logActivity(db, {
+          companyId: existing.companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+          action: "issue.update_rejected",
+          entityType: "issue",
+          entityId: existing.id,
+          details,
+        });
+      }
       throw err;
     }
     if (!issue) {
       res.status(404).json({ error: "Issue not found" });
       return;
+    }
+    if (statusTransitionRequested && issue.status !== existing.status) {
+      await logActivity(db, {
+        companyId: issue.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "issue.state_transition.success",
+        entityType: "issue",
+        entityId: issue.id,
+        details: {
+          identifier: issue.identifier,
+          statusFrom: existing.status,
+          statusTo: issue.status,
+        },
+      });
     }
 
     let cancelledStatusRunId: string | null = null;
@@ -2985,6 +3100,49 @@ export function issueRoutes(
               .map(summarizeIssueRelationForActivity),
           },
         });
+        if (addedBlockedByIssueIds.length > 0) {
+          await logActivity(db, {
+            companyId: issue.companyId,
+            actorType: actor.actorType,
+            actorId: actor.actorId,
+            agentId: actor.agentId,
+            runId: actor.runId,
+            action: "issue.blocked",
+            entityType: "issue",
+            entityId: issue.id,
+            details: {
+              identifier: issue.identifier,
+              blockedByIssueIds: req.body.blockedByIssueIds,
+              blockerCount: nextBlockedByIds.size,
+              addedBlockedByIssueIds,
+              blockedByIssues: nextBlockedByRelations.map(summarizeIssueRelationForActivity),
+              addedBlockedByIssues: nextBlockedByRelations
+                .filter((relation) => addedBlockedByIssueIds.includes(relation.id))
+                .map(summarizeIssueRelationForActivity),
+            },
+          });
+        }
+        if (removedBlockedByIssueIds.length > 0 && nextBlockedByIds.size === 0) {
+          await logActivity(db, {
+            companyId: issue.companyId,
+            actorType: actor.actorType,
+            actorId: actor.actorId,
+            agentId: actor.agentId,
+            runId: actor.runId,
+            action: "issue.unblocked",
+            entityType: "issue",
+            entityId: issue.id,
+            details: {
+              identifier: issue.identifier,
+              blockedByIssueIds: [],
+              blockerCount: 0,
+              removedBlockedByIssueIds,
+              removedBlockedByIssues: previousBlockedByRelations
+                .filter((relation) => removedBlockedByIssueIds.includes(relation.id))
+                .map(summarizeIssueRelationForActivity),
+            },
+          });
+        }
       }
     }
 
@@ -3329,6 +3487,12 @@ export function issueRoutes(
             source: "automation",
             triggerDetail: "system",
             reason: "issue_blockers_resolved",
+            idempotencyKey: buildDependencyWakeIdempotencyKey({
+              reason: "issue_blockers_resolved",
+              issueId: dependent.id,
+              relationIds: dependent.blockerIssueIds,
+              issueUpdatedAt: dependent.updatedAt,
+            }),
             payload: {
               issueId: dependent.id,
               resolvedBlockerIssueId: issue.id,
@@ -3357,6 +3521,12 @@ export function issueRoutes(
             source: "automation",
             triggerDetail: "system",
             reason: "issue_children_completed",
+            idempotencyKey: buildDependencyWakeIdempotencyKey({
+              reason: "issue_children_completed",
+              issueId: parent.id,
+              relationIds: parent.childIssueIds,
+              issueUpdatedAt: parent.updatedAt,
+            }),
             payload: {
               issueId: parent.id,
               completedChildIssueId: issue.id,
@@ -3438,35 +3608,175 @@ export function issueRoutes(
       return;
     }
     assertCompanyAccess(req, issue.companyId);
+    const actor = getActorInfo(req);
+    const emitCheckoutFailure = async (input: {
+      reasonCode: string;
+      httpStatus: number;
+      error: string;
+      details?: Record<string, unknown>;
+    }) => {
+      const sharedDetails = {
+        identifier: issue.identifier,
+        agentId: req.body.agentId,
+        expectedStatuses: req.body.expectedStatuses,
+        currentStatus: issue.status,
+        current_status: issue.status,
+        attemptedStatus: "in_progress",
+        attempted_status: "in_progress",
+        currentAssigneeAgentId: issue.assigneeAgentId,
+        reasonCode: input.reasonCode,
+        reason_code: input.reasonCode,
+        httpStatus: input.httpStatus,
+        http_status: input.httpStatus,
+        error: input.error,
+        ...(input.details ? { details: input.details } : {}),
+      };
+      await logActivity(db, {
+        companyId: issue.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "issue.checkout.fail",
+        entityType: "issue",
+        entityId: issue.id,
+        details: sharedDetails,
+      });
+      await logActivity(db, {
+        companyId: issue.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        action: "issue.checkout_rejected",
+        entityType: "issue",
+        entityId: issue.id,
+        details: sharedDetails,
+      });
+    };
+
+    await logActivity(db, {
+      companyId: issue.companyId,
+      actorType: actor.actorType,
+      actorId: actor.actorId,
+      agentId: actor.agentId,
+      runId: actor.runId,
+      action: "issue.checkout.attempt",
+      entityType: "issue",
+      entityId: issue.id,
+      details: {
+        identifier: issue.identifier,
+        agentId: req.body.agentId,
+        expectedStatuses: req.body.expectedStatuses,
+        currentStatus: issue.status,
+        currentAssigneeAgentId: issue.assigneeAgentId,
+      },
+    });
 
     if (issue.projectId) {
       const project = await projectsSvc.getById(issue.projectId);
       if (project?.pausedAt) {
+        const error =
+          project.pauseReason === "budget"
+            ? "Project is paused because its budget hard-stop was reached"
+            : "Project is paused";
+        await emitCheckoutFailure({
+          reasonCode: "project_paused",
+          httpStatus: 409,
+          error,
+          details: {
+            pauseReason: project.pauseReason ?? null,
+            projectId: project.id,
+          },
+        });
         res.status(409).json({
-          error:
-            project.pauseReason === "budget"
-              ? "Project is paused because its budget hard-stop was reached"
-              : "Project is paused",
+          error,
         });
         return;
       }
     }
 
     if (req.actor.type === "agent" && req.actor.agentId !== req.body.agentId) {
+      await emitCheckoutFailure({
+        reasonCode: "wrong_actor",
+        httpStatus: 403,
+        error: "Agent can only checkout as itself",
+      });
       res.status(403).json({ error: "Agent can only checkout as itself" });
       return;
     }
 
     const closedExecutionWorkspace = await getClosedIssueExecutionWorkspace(issue);
     if (closedExecutionWorkspace) {
+      await emitCheckoutFailure({
+        reasonCode: "closed_workspace",
+        httpStatus: 409,
+        error: "Issue execution workspace is closed",
+        details: {
+          workspaceId: closedExecutionWorkspace.id,
+          workspaceName: closedExecutionWorkspace.name,
+        },
+      });
       respondClosedIssueExecutionWorkspace(res, closedExecutionWorkspace);
       return;
     }
 
     const checkoutRunId = requireAgentRunId(req, res);
-    if (req.actor.type === "agent" && !checkoutRunId) return;
-    const updated = await svc.checkout(id, req.body.agentId, req.body.expectedStatuses, checkoutRunId);
-    const actor = getActorInfo(req);
+    if (req.actor.type === "agent" && !checkoutRunId) {
+      await emitCheckoutFailure({
+        reasonCode: "missing_run_id",
+        httpStatus: 400,
+        error: "Agent run id is required for checkout",
+      });
+      return;
+    }
+
+    let updated: Awaited<ReturnType<typeof svc.checkout>>;
+    try {
+      updated = await svc.checkout(id, req.body.agentId, req.body.expectedStatuses, checkoutRunId);
+    } catch (err) {
+      const statusCode = err instanceof HttpError ? err.status : 500;
+      const reasonCode = (() => {
+        const message = err instanceof Error ? err.message.toLowerCase() : "";
+        if (message.includes("unresolved blockers")) return "unresolved_blockers";
+        if (message.includes("active subtree pause hold")) return "tree_hold_conflict";
+        if (message.includes("checkout conflict")) return "status_conflict";
+        if (statusCode === 409) return "status_conflict";
+        if (statusCode === 422) return "validation";
+        return "unknown";
+      })();
+      await emitCheckoutFailure({
+        reasonCode,
+        httpStatus: statusCode,
+        error: err instanceof Error ? err.message : "Checkout failed",
+        details:
+          err instanceof HttpError && err.details && typeof err.details === "object"
+            ? (err.details as Record<string, unknown>)
+            : undefined,
+      });
+      throw err;
+    }
+
+    await logActivity(db, {
+      companyId: issue.companyId,
+      actorType: actor.actorType,
+      actorId: actor.actorId,
+      agentId: actor.agentId,
+      runId: actor.runId,
+      action: "issue.checkout.success",
+      entityType: "issue",
+      entityId: issue.id,
+      details: {
+        identifier: issue.identifier,
+        agentId: req.body.agentId,
+        expectedStatuses: req.body.expectedStatuses,
+        previousStatus: issue.status,
+        status: updated.status,
+        currentAssigneeAgentId: updated.assigneeAgentId,
+        checkoutRunId: updated.checkoutRunId,
+        executionRunId: updated.executionRunId,
+      },
+    });
 
     await logActivity(db, {
       companyId: issue.companyId,

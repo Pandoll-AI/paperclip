@@ -956,4 +956,211 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       },
     });
   });
+
+  it("dedupes issue wakeups with the same idempotency key while execution is active", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const issueId = randomUUID();
+    const idempotencyKey = `issue_blockers_resolved:${issueId}:stable`;
+    let finishRun!: () => void;
+    const runFinished = new Promise<void>((resolve) => {
+      finishRun = resolve;
+    });
+
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await runFinished;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Idempotent dependency wake run complete.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "CodexCoder",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          wakeOnDemand: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+    });
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Blocked issue",
+      status: "todo",
+      priority: "medium",
+      assigneeAgentId: agentId,
+    });
+
+    const firstWake = await heartbeat.wakeup(agentId, {
+      source: "automation",
+      triggerDetail: "system",
+      reason: "issue_blockers_resolved",
+      idempotencyKey,
+      payload: { issueId, resolvedBlockerIssueId: "blocker-1" },
+      contextSnapshot: { issueId, wakeReason: "issue_blockers_resolved" },
+    });
+    expect(firstWake).not.toBeNull();
+
+    const secondWake = await heartbeat.wakeup(agentId, {
+      source: "automation",
+      triggerDetail: "system",
+      reason: "issue_blockers_resolved",
+      idempotencyKey,
+      payload: { issueId, resolvedBlockerIssueId: "blocker-1" },
+      contextSnapshot: { issueId, wakeReason: "issue_blockers_resolved" },
+    });
+    expect(secondWake?.id).toBe(firstWake?.id);
+
+    const wakeRequestCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agentWakeupRequests)
+      .where(and(eq(agentWakeupRequests.agentId, agentId), eq(agentWakeupRequests.idempotencyKey, idempotencyKey)))
+      .then((rows) => rows[0]?.count ?? 0);
+    expect(wakeRequestCount).toBe(1);
+
+    await db.insert(issueComments).values({
+      companyId,
+      issueId,
+      authorAgentId: agentId,
+      authorType: "agent",
+      createdByRunId: firstWake!.id,
+      body: "Idempotent wake test completed.",
+    });
+    finishRun();
+
+    const runSucceeded = await waitForCondition(async () => {
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, firstWake!.id))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "succeeded";
+    }, 10_000);
+    expect(runSucceeded).toBe(true);
+  });
+
+  it("dedupes concurrent issue wakeups with the same idempotency key", async () => {
+    const companyId = randomUUID();
+    const agentId = randomUUID();
+    const issueId = randomUUID();
+    const idempotencyKey = `issue_blockers_resolved:${issueId}:concurrent`;
+    let finishRun!: () => void;
+    const runFinished = new Promise<void>((resolve) => {
+      finishRun = resolve;
+    });
+
+    mockAdapterExecute.mockImplementationOnce(async () => {
+      await runFinished;
+      return {
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        errorMessage: null,
+        summary: "Concurrent idempotent dependency wake run complete.",
+        provider: "test",
+        model: "test-model",
+      };
+    });
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+    await db.insert(agents).values({
+      id: agentId,
+      companyId,
+      name: "CodexCoder",
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {
+        heartbeat: {
+          wakeOnDemand: true,
+          maxConcurrentRuns: 1,
+        },
+      },
+      permissions: {},
+    });
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      title: "Blocked issue",
+      status: "todo",
+      priority: "medium",
+      assigneeAgentId: agentId,
+    });
+
+    const [firstWake, secondWake] = await Promise.all([
+      heartbeat.wakeup(agentId, {
+        source: "automation",
+        triggerDetail: "system",
+        reason: "issue_blockers_resolved",
+        idempotencyKey,
+        payload: { issueId, resolvedBlockerIssueId: "blocker-1" },
+        contextSnapshot: { issueId, wakeReason: "issue_blockers_resolved" },
+      }),
+      heartbeat.wakeup(agentId, {
+        source: "automation",
+        triggerDetail: "system",
+        reason: "issue_blockers_resolved",
+        idempotencyKey,
+        payload: { issueId, resolvedBlockerIssueId: "blocker-1" },
+        contextSnapshot: { issueId, wakeReason: "issue_blockers_resolved" },
+      }),
+    ]);
+
+    expect(firstWake).not.toBeNull();
+    expect(secondWake).not.toBeNull();
+    expect(secondWake?.id).toBe(firstWake?.id);
+
+    const wakeRequestCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(agentWakeupRequests)
+      .where(and(eq(agentWakeupRequests.agentId, agentId), eq(agentWakeupRequests.idempotencyKey, idempotencyKey)))
+      .then((rows) => rows[0]?.count ?? 0);
+    expect(wakeRequestCount).toBe(1);
+
+    await db.insert(issueComments).values({
+      companyId,
+      issueId,
+      authorAgentId: agentId,
+      authorType: "agent",
+      createdByRunId: firstWake!.id,
+      body: "Concurrent idempotent wake test completed.",
+    });
+    finishRun();
+
+    const runSucceeded = await waitForCondition(async () => {
+      const run = await db
+        .select({ status: heartbeatRuns.status })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, firstWake!.id))
+        .then((rows) => rows[0] ?? null);
+      return run?.status === "succeeded";
+    }, 10_000);
+    expect(runSucceeded).toBe(true);
+  });
 });

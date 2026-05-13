@@ -155,6 +155,7 @@ describe("issue dependency wakeups in issue routes", () => {
       {
         id: "issue-2",
         assigneeAgentId: "agent-2",
+        updatedAt: new Date("2026-04-18T12:00:00.000Z"),
         blockerIssueIds: ["issue-1", "issue-3"],
       },
     ]);
@@ -162,14 +163,15 @@ describe("issue dependency wakeups in issue routes", () => {
     const res = await request(await createApp()).patch("/api/issues/issue-1").send({ status: "done" });
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
-      expect(mockWakeup).toHaveBeenCalledWith(
-        "agent-2",
-        expect.objectContaining({
-          reason: "issue_blockers_resolved",
-          payload: expect.objectContaining({
-            issueId: "issue-2",
-            resolvedBlockerIssueId: "issue-1",
-          }),
+        expect(mockWakeup).toHaveBeenCalledWith(
+          "agent-2",
+          expect.objectContaining({
+            reason: "issue_blockers_resolved",
+            idempotencyKey: expect.stringMatching(/^issue_blockers_resolved:issue-2:[0-9a-f]{20}$/),
+            payload: expect.objectContaining({
+              issueId: "issue-2",
+              resolvedBlockerIssueId: "issue-1",
+            }),
         }),
       );
     });
@@ -213,6 +215,7 @@ describe("issue dependency wakeups in issue routes", () => {
     mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue({
       id: "parent-1",
       assigneeAgentId: "agent-9",
+      updatedAt: new Date("2026-04-18T12:10:00.000Z"),
       childIssueIds: ["child-0", "child-1"],
       childIssueSummaries: [
         {
@@ -244,13 +247,14 @@ describe("issue dependency wakeups in issue routes", () => {
     const res = await request(await createApp()).patch("/api/issues/child-1").send({ status: "done" });
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
-      expect(mockWakeup).toHaveBeenCalledWith(
-        "agent-9",
-        expect.objectContaining({
-          reason: "issue_children_completed",
-          payload: expect.objectContaining({
-            issueId: "parent-1",
-            completedChildIssueId: "child-1",
+        expect(mockWakeup).toHaveBeenCalledWith(
+          "agent-9",
+          expect.objectContaining({
+            reason: "issue_children_completed",
+            idempotencyKey: expect.stringMatching(/^issue_children_completed:parent-1:[0-9a-f]{20}$/),
+            payload: expect.objectContaining({
+              issueId: "parent-1",
+              completedChildIssueId: "child-1",
             childIssueSummaries: expect.arrayContaining([
               expect.objectContaining({ identifier: "PAP-101", summary: "Last child finished." }),
             ]),

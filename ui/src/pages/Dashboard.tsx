@@ -24,14 +24,88 @@ import { Bot, CircleDot, DollarSign, ShieldCheck, LayoutDashboard, PauseCircle }
 import { ActiveAgentsPanel } from "../components/ActiveAgentsPanel";
 import { ChartCard, RunActivityChart, PriorityChart, IssueStatusChart, SuccessRateChart } from "../components/ActivityCharts";
 import { PageSkeleton } from "../components/PageSkeleton";
-import type { Agent, Issue } from "@paperclipai/shared";
+import type { Agent, Issue, ReliabilityWeeklyReport, ReliabilityTrendDirection } from "@paperclipai/shared";
 import { PluginSlotOutlet } from "@/plugins/slots";
 
 const DASHBOARD_ACTIVITY_LIMIT = 10;
 
+function formatPercent(value: number | null, precision = 1) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${(value * 100).toFixed(precision)}%`;
+}
+
+function formatHours(value: number | null, precision = 1) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${value.toFixed(precision)} hrs`;
+}
+
+function trendArrow(direction: ReliabilityTrendDirection) {
+  if (direction === "up") return "↑";
+  if (direction === "down") return "↓";
+  if (direction === "flat") return "→";
+  return "•";
+}
+
 function getRecentIssues(issues: Issue[]): Issue[] {
   return [...issues]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
+function ReliabilityKpi({
+  label,
+  value,
+  trendDirection,
+}: {
+  label: string;
+  value: string;
+  trendDirection: ReliabilityTrendDirection;
+}) {
+  return (
+    <div className="rounded-lg border border-border p-4 bg-card">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">Trend: {trendArrow(trendDirection)} relative to prior week</p>
+    </div>
+  );
+}
+
+function ReliabilitySection({ report }: { report: ReliabilityWeeklyReport }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Execution Reliability Baseline (7d)
+      </p>
+      <p className="text-xs text-muted-foreground mt-1">
+        {new Date(report.window.from).toLocaleDateString()} → {new Date(report.window.to).toLocaleDateString()}
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ReliabilityKpi
+          label="Checkout Success Rate"
+          value={formatPercent(report.kpis.checkout_success_rate.value, 2)}
+          trendDirection={report.kpis.checkout_success_rate.trendDirection}
+        />
+        <ReliabilityKpi
+          label="State Transition Error Rate"
+          value={formatPercent(report.kpis.state_transition_error_rate.value, 2)}
+          trendDirection={report.kpis.state_transition_error_rate.trendDirection}
+        />
+        <ReliabilityKpi
+          label="Avg Blocker Resolution"
+          value={formatHours(report.kpis.blocker_resolution_latency_hours.value)}
+          trendDirection={report.kpis.blocker_resolution_latency_hours.trendDirection}
+        />
+        <ReliabilityKpi
+          label="Avg Cycle Time"
+          value={formatHours(report.kpis.cycle_time_hours.value)}
+          trendDirection={report.kpis.cycle_time_hours.trendDirection}
+        />
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Coverage: {Math.round((report.metric_quality.checkout_failure_coverage.value ?? 0) * 100)}% checkout,{" "}
+        {Math.round((report.metric_quality.transition_failure_coverage.value ?? 0) * 100)}% transition
+      </p>
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -56,6 +130,12 @@ export function Dashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.dashboard(selectedCompanyId!),
     queryFn: () => dashboardApi.summary(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: reliabilityReport } = useQuery({
+    queryKey: queryKeys.reliabilityReport(selectedCompanyId!),
+    queryFn: () => dashboardApi.reliabilityReport(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
 
@@ -290,6 +370,8 @@ export function Dashboard() {
               }
             />
           </div>
+
+          {reliabilityReport ? <ReliabilitySection report={reliabilityReport} /> : null}
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <ChartCard title="Run Activity" subtitle="Last 14 days">

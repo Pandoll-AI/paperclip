@@ -226,6 +226,14 @@ const MAX_TURN_CONTINUATION_MAX_ATTEMPTS_CAP = 10;
 const MAX_TURN_CONTINUATION_DEFAULT_DELAY_MS = 1_000;
 const MAX_TURN_CONTINUATION_MAX_DELAY_MS = 5 * 60 * 1000;
 const MAX_TURN_CONTINUATION_LIVE_RUN_STATUSES = ["scheduled_retry", "queued", "running"] as const;
+const IDEMPOTENT_WAKEUP_ACTIVE_STATUSES = [
+  "queued",
+  "claimed",
+  "coalesced",
+  "deferred_issue_execution",
+  "completed",
+] as const;
+const AGENT_WAKEUP_ACTIVE_IDEMPOTENCY_CONSTRAINT = "agent_wakeup_requests_active_idempotency_uq";
 type CodexTransientFallbackMode =
   | "same_session"
   | "safer_invocation"
@@ -1031,6 +1039,14 @@ export function prioritizeProjectWorkspaceCandidatesForRun<T extends ProjectWork
 
 function readNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function isAgentWakeupActiveIdempotencyConflict(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const err = error as { code?: string; constraint?: string; constraint_name?: string };
+  const constraint = err.constraint ?? err.constraint_name;
+  if (err.code === "23505" && constraint === AGENT_WAKEUP_ACTIVE_IDEMPOTENCY_CONSTRAINT) return true;
+  return isAgentWakeupActiveIdempotencyConflict((error as { cause?: unknown }).cause);
 }
 
 function readModelProfileKey(value: unknown): ModelProfileKey | null {
@@ -2404,6 +2420,59 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0] ?? null);
+  }
+
+  async function resolveActiveIdempotentWakeup(
+    dbOrTx: any,
+    companyId: string,
+    agentId: string,
+    idempotencyKey: string,
+  ): Promise<{ found: false } | { found: true; run: typeof heartbeatRuns.$inferSelect | null }> {
+    const existingWake = await dbOrTx
+      .select({
+        runId: agentWakeupRequests.runId,
+      })
+      .from(agentWakeupRequests)
+      .where(
+        and(
+          eq(agentWakeupRequests.companyId, companyId),
+          eq(agentWakeupRequests.agentId, agentId),
+          eq(agentWakeupRequests.idempotencyKey, idempotencyKey),
+          inArray(agentWakeupRequests.status, [...IDEMPOTENT_WAKEUP_ACTIVE_STATUSES]),
+        ),
+      )
+      .orderBy(desc(agentWakeupRequests.requestedAt), desc(agentWakeupRequests.id))
+      .limit(1)
+      .then((rows: Array<{ runId: string | null }>) => rows[0] ?? null);
+
+    if (!existingWake) return { found: false };
+    if (!existingWake.runId) return { found: true, run: null };
+
+    const existingRun = await dbOrTx
+      .select()
+      .from(heartbeatRuns)
+      .where(eq(heartbeatRuns.id, existingWake.runId))
+      .then((rows: Array<typeof heartbeatRuns.$inferSelect>) => rows[0] ?? null);
+    return { found: true, run: existingRun };
+  }
+
+  async function insertWakeupRequestOrNull(
+    dbOrTx: any,
+    values: typeof agentWakeupRequests.$inferInsert,
+  ): Promise<typeof agentWakeupRequests.$inferSelect | null> {
+    try {
+      return await dbOrTx
+        .insert(agentWakeupRequests)
+        .values(values)
+        .onConflictDoNothing()
+        .returning()
+        .then((rows: Array<typeof agentWakeupRequests.$inferSelect>) => rows[0] ?? null);
+    } catch (error) {
+      if (values.idempotencyKey && isAgentWakeupActiveIdempotencyConflict(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async function getRunLogAccess(runId: string) {
@@ -8540,6 +8609,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     const contextSnapshot: Record<string, unknown> = { ...(opts.contextSnapshot ?? {}) };
     const reason = opts.reason ?? null;
     const payload = opts.payload ?? null;
+    const idempotencyKey = readNonEmptyString(opts.idempotencyKey);
     const {
       contextSnapshot: enrichedContextSnapshot,
       issueIdFromPayload,
@@ -8556,6 +8626,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     const agent = await getAgent(agentId);
     if (!agent) throw notFound("Agent not found");
+
+    if (idempotencyKey) {
+      const existing = await resolveActiveIdempotentWakeup(db, agent.companyId, agentId, idempotencyKey);
+      if (existing.found) return existing.run;
+    }
+
     const explicitResumeSession = await resolveExplicitResumeSessionOverride(agent, payload, taskKey);
     if (explicitResumeSession) {
       enrichedContextSnapshot.resumeFromRunId = explicitResumeSession.resumeFromRunId;
@@ -8579,7 +8655,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     const continuationAttempt = readContinuationAttempt(enrichedContextSnapshot.livenessContinuationAttempt);
 
     const writeSkippedRequest = async (skipReason: string) => {
-      await db.insert(agentWakeupRequests).values({
+      await insertWakeupRequestOrNull(db, {
         companyId: agent.companyId,
         agentId,
         source,
@@ -8589,7 +8665,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         status: "skipped",
         requestedByActorType: opts.requestedByActorType ?? null,
         requestedByActorId: opts.requestedByActorId ?? null,
-        idempotencyKey: opts.idempotencyKey ?? null,
+        idempotencyKey: idempotencyKey ?? null,
         finishedAt: new Date(),
       });
     };
@@ -8716,7 +8792,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             status: "skipped",
             requestedByActorType: opts.requestedByActorType ?? null,
             requestedByActorId: opts.requestedByActorId ?? null,
-            idempotencyKey: opts.idempotencyKey ?? null,
+            idempotencyKey: idempotencyKey ?? null,
             finishedAt: new Date(),
           });
           return { kind: "skipped" as const };
@@ -8919,7 +8995,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             status: "skipped",
             requestedByActorType: opts.requestedByActorType ?? null,
             requestedByActorId: opts.requestedByActorId ?? null,
-            idempotencyKey: opts.idempotencyKey ?? null,
+            idempotencyKey: idempotencyKey ?? null,
             finishedAt: new Date(),
           });
           return { kind: "skipped" as const };
@@ -8956,7 +9032,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               .returning()
               .then((rows) => rows[0] ?? activeExecutionRun);
 
-            await tx.insert(agentWakeupRequests).values({
+            const insertedCoalescedWake = await insertWakeupRequestOrNull(tx, {
               companyId: agent.companyId,
               agentId,
               source,
@@ -8967,10 +9043,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               coalescedCount: 1,
               requestedByActorType: opts.requestedByActorType ?? null,
               requestedByActorId: opts.requestedByActorId ?? null,
-              idempotencyKey: opts.idempotencyKey ?? null,
+              idempotencyKey: idempotencyKey ?? null,
               runId: mergedRun.id,
               finishedAt: new Date(),
             });
+            if (!insertedCoalescedWake && idempotencyKey) {
+              const existing = await resolveActiveIdempotentWakeup(tx, agent.companyId, agentId, idempotencyKey);
+              if (existing.found && existing.run) return { kind: "coalesced" as const, run: existing.run };
+            }
 
             return { kind: "coalesced" as const, run: mergedRun };
           }
@@ -9022,7 +9102,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             return { kind: "deferred" as const };
           }
 
-          await tx.insert(agentWakeupRequests).values({
+          const insertedDeferredWake = await insertWakeupRequestOrNull(tx, {
             companyId: agent.companyId,
             agentId,
             source,
@@ -9032,28 +9112,35 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             status: "deferred_issue_execution",
             requestedByActorType: opts.requestedByActorType ?? null,
             requestedByActorId: opts.requestedByActorId ?? null,
-            idempotencyKey: opts.idempotencyKey ?? null,
+            idempotencyKey: idempotencyKey ?? null,
           });
+          if (!insertedDeferredWake && idempotencyKey) {
+            const existing = await resolveActiveIdempotentWakeup(tx, agent.companyId, agentId, idempotencyKey);
+            if (existing.found && existing.run) return { kind: "coalesced" as const, run: existing.run };
+          }
 
           return { kind: "deferred" as const };
         }
 
-        const wakeupRequest = await tx
-          .insert(agentWakeupRequests)
-          .values({
-            companyId: agent.companyId,
-            agentId,
-            source,
-            triggerDetail,
-            reason,
-            payload,
-            status: "queued",
-            requestedByActorType: opts.requestedByActorType ?? null,
-            requestedByActorId: opts.requestedByActorId ?? null,
-            idempotencyKey: opts.idempotencyKey ?? null,
-          })
-          .returning()
-          .then((rows) => rows[0]);
+        const wakeupRequest = await insertWakeupRequestOrNull(tx, {
+          companyId: agent.companyId,
+          agentId,
+          source,
+          triggerDetail,
+          reason,
+          payload,
+          status: "queued",
+          requestedByActorType: opts.requestedByActorType ?? null,
+          requestedByActorId: opts.requestedByActorId ?? null,
+          idempotencyKey: idempotencyKey ?? null,
+        });
+        if (!wakeupRequest) {
+          if (idempotencyKey) {
+            const existing = await resolveActiveIdempotentWakeup(tx, agent.companyId, agentId, idempotencyKey);
+            if (existing.found && existing.run) return { kind: "queued" as const, run: existing.run };
+          }
+          return { kind: "skipped" as const };
+        }
 
         const newRun = await tx
           .insert(heartbeatRuns)
@@ -9149,7 +9236,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         .returning()
         .then((rows) => rows[0] ?? coalescedTargetRun);
 
-      await db.insert(agentWakeupRequests).values({
+      const insertedCoalescedWake = await insertWakeupRequestOrNull(db, {
         companyId: agent.companyId,
         agentId,
         source,
@@ -9160,29 +9247,36 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         coalescedCount: 1,
         requestedByActorType: opts.requestedByActorType ?? null,
         requestedByActorId: opts.requestedByActorId ?? null,
-        idempotencyKey: opts.idempotencyKey ?? null,
+        idempotencyKey: idempotencyKey ?? null,
         runId: mergedRun.id,
         finishedAt: new Date(),
       });
+      if (!insertedCoalescedWake && idempotencyKey) {
+        const existing = await resolveActiveIdempotentWakeup(db, agent.companyId, agentId, idempotencyKey);
+        if (existing.found && existing.run) return existing.run;
+      }
       return mergedRun;
     }
 
-    const wakeupRequest = await db
-      .insert(agentWakeupRequests)
-      .values({
-        companyId: agent.companyId,
-        agentId,
-        source,
-        triggerDetail,
-        reason,
-        payload,
-        status: "queued",
-        requestedByActorType: opts.requestedByActorType ?? null,
-        requestedByActorId: opts.requestedByActorId ?? null,
-        idempotencyKey: opts.idempotencyKey ?? null,
-      })
-      .returning()
-      .then((rows) => rows[0]);
+    const wakeupRequest = await insertWakeupRequestOrNull(db, {
+      companyId: agent.companyId,
+      agentId,
+      source,
+      triggerDetail,
+      reason,
+      payload,
+      status: "queued",
+      requestedByActorType: opts.requestedByActorType ?? null,
+      requestedByActorId: opts.requestedByActorId ?? null,
+      idempotencyKey: idempotencyKey ?? null,
+    });
+    if (!wakeupRequest) {
+      if (idempotencyKey) {
+        const existing = await resolveActiveIdempotentWakeup(db, agent.companyId, agentId, idempotencyKey);
+        if (existing.found) return existing.run;
+      }
+      return null;
+    }
 
     const newRun = await db
       .insert(heartbeatRuns)

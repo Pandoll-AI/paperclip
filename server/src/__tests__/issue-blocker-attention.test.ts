@@ -146,6 +146,7 @@ describeEmbeddedPostgres("issue blocker attention", () => {
       coveredBlockerCount: 1,
       attentionBlockerCount: 0,
       sampleBlockerIdentifier: "PBC-2",
+      sampleBlockerOwnerHint: `agent:${agentId}`,
     });
   });
 
@@ -195,6 +196,7 @@ describeEmbeddedPostgres("issue blocker attention", () => {
       coveredBlockerCount: 1,
       attentionBlockerCount: 0,
       sampleBlockerIdentifier: "PBU-2",
+      sampleBlockerOwnerHint: "user:board-user-1",
     });
   });
 
@@ -333,6 +335,8 @@ describeEmbeddedPostgres("issue blocker attention", () => {
       attentionBlockerCount: 0,
       sampleBlockerIdentifier: "PBV-2",
       sampleStalledBlockerIdentifier: "PBV-2",
+      sampleBlockerOwnerHint: `agent:${agentId}`,
+      sampleStalledBlockerOwnerHint: `agent:${agentId}`,
     });
   });
 
@@ -378,6 +382,7 @@ describeEmbeddedPostgres("issue blocker attention", () => {
       reason: "stalled_review",
       stalledBlockerCount: 1,
       sampleStalledBlockerIdentifier: "PBZ-3",
+      sampleStalledBlockerOwnerHint: `agent:${agentId}`,
     });
   });
 

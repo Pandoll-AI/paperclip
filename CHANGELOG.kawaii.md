@@ -15,3 +15,4 @@
 - Fixed the Rika dialogue scene hand artifact, tightened Staff image prompts against duplicate hands/arms, and remapped Staff Room arrow buttons to cycle detail panels instead of Staff people.
 - Restored Rika dock cut-in laptop and shoulder opacity while keeping the extra hand removed.
 - Fixed Staff Room scene composites to fill the stage container instead of letterboxing.
+- Hardened the reliability dashboard inputs and issue wakeup idempotency so rejected operations, legacy status payloads, high-volume weekly windows, and concurrent wake retries report correctly.

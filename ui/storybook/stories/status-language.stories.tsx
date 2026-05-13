@@ -60,7 +60,9 @@ function attention(
     stalledBlockerCount: partial.stalledBlockerCount ?? 0,
     attentionBlockerCount: partial.attentionBlockerCount ?? 0,
     sampleBlockerIdentifier: partial.sampleBlockerIdentifier ?? null,
+    sampleBlockerOwnerHint: partial.sampleBlockerOwnerHint ?? null,
     sampleStalledBlockerIdentifier: partial.sampleStalledBlockerIdentifier ?? null,
+    sampleStalledBlockerOwnerHint: partial.sampleStalledBlockerOwnerHint ?? null,
   };
 }
 

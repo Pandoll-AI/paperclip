@@ -130,7 +130,9 @@ function BlockedByParkedWorkPanel() {
           stalledBlockerCount: 0,
           attentionBlockerCount: 1,
           sampleBlockerIdentifier: parkedBlocker.identifier,
+          sampleBlockerOwnerHint: `agent:${codexAgent.id}`,
           sampleStalledBlockerIdentifier: null,
+          sampleStalledBlockerOwnerHint: null,
         }}
       />
     </div>
@@ -169,7 +171,9 @@ function ListRowsPanel() {
               stalledBlockerCount: 0,
               attentionBlockerCount: 1,
               sampleBlockerIdentifier: "PAP-3683",
+              sampleBlockerOwnerHint: `agent:${codexAgent.id}`,
               sampleStalledBlockerIdentifier: null,
+              sampleStalledBlockerOwnerHint: null,
             },
           })}
         />

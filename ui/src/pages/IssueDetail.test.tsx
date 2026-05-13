@@ -850,7 +850,9 @@ describe("IssueDetail", () => {
         stalledBlockerCount: 0,
         attentionBlockerCount: 0,
         sampleBlockerIdentifier: "PAP-2",
+        sampleBlockerOwnerHint: null,
         sampleStalledBlockerIdentifier: null,
+        sampleStalledBlockerOwnerHint: null,
       },
     }));
 

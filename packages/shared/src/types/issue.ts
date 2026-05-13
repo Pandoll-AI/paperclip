@@ -150,7 +150,9 @@ export interface IssueBlockerAttention {
   stalledBlockerCount: number;
   attentionBlockerCount: number;
   sampleBlockerIdentifier: string | null;
+  sampleBlockerOwnerHint: string | null;
   sampleStalledBlockerIdentifier: string | null;
+  sampleStalledBlockerOwnerHint: string | null;
 }
 
 export type IssueProductivityReviewTrigger =
