@@ -628,6 +628,17 @@
   background: linear-gradient(180deg, #ff8f83, #ffc56f);
 }
 
+.kawaii-mini-chart--empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.kawaii-mini-chart em {
+  color: rgba(56, 37, 31, 0.5);
+  font-size: 12px;
+  font-style: normal;
+}
+
 .kawaii-staff-room {
   display: grid;
   grid-template-columns: 245px minmax(320px, 0.9fr) minmax(0, 1.5fr);

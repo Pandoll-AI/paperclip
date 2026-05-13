@@ -5,7 +5,13 @@ export function assetByKey(
   keys: string | string[],
 ): KawaiiAssetEntry | null {
   const wanted = Array.isArray(keys) ? keys : [keys];
-  return set?.manifest.assets.find((asset) => wanted.includes(asset.key) && asset.contentPath) ?? null;
+  for (const key of wanted) {
+    const asset = set?.manifest.assets.find((candidate) =>
+      candidate.contentPath && (candidate.key === key || candidate.key.startsWith(`${key}_`))
+    );
+    if (asset) return asset;
+  }
+  return null;
 }
 
 export function isKawaiiGenerating(set: KawaiiAssetSet | null | undefined) {
@@ -15,4 +21,3 @@ export function isKawaiiGenerating(set: KawaiiAssetSet | null | undefined) {
 export function needsKawaiiPolling(sets: KawaiiAssetSet[] | null | undefined) {
   return Boolean(sets?.some(isKawaiiGenerating));
 }
-

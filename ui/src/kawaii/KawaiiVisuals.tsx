@@ -46,6 +46,15 @@ export function KawaiiPortrait({
 }
 
 export function KawaiiMiniChart({ values }: { values: number[] }) {
+  const hasData = values.some((value) => value > 0);
+  if (!hasData) {
+    return (
+      <div className="kawaii-mini-chart kawaii-mini-chart--empty">
+        <em>No activity yet</em>
+      </div>
+    );
+  }
+
   const max = Math.max(1, ...values);
   return (
     <div className="kawaii-mini-chart">

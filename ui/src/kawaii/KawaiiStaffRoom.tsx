@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Shield, Target, Users } from "lucide-react";
 import type { Agent, KawaiiAssetSet } from "@paperclipai/shared";
@@ -15,6 +16,8 @@ import { KawaiiPortrait } from "./KawaiiVisuals";
 import { needsKawaiiPolling } from "./assets";
 import { kawaiiCeoLabel, kawaiiFirstName, kawaiiStaffLabel, kawaiiStaffTitle } from "./display";
 
+export type KawaiiStaffFilterTab = "all" | "active" | "paused" | "error";
+
 function mapVisuals(sets: KawaiiAssetSet[] | undefined) {
   const map = new Map<string, KawaiiAssetSet>();
   for (const set of sets ?? []) {
@@ -23,10 +26,35 @@ function mapVisuals(sets: KawaiiAssetSet[] | undefined) {
   return map;
 }
 
+export function kawaiiStaffFilterFromPathname(pathname: string): KawaiiStaffFilterTab {
+  const segments = pathname.split("/").filter(Boolean);
+  const agentsIndex = segments.indexOf("agents");
+  const tab = agentsIndex >= 0 ? segments[agentsIndex + 1] : null;
+  if (tab === "active" || tab === "paused" || tab === "error") return tab;
+  return "all";
+}
+
+export function matchesKawaiiStaffFilter(agent: Pick<Agent, "status">, tab: KawaiiStaffFilterTab) {
+  if (agent.status === "terminated") return false;
+  if (tab === "all") return true;
+  if (tab === "active") return agent.status === "active" || agent.status === "running" || agent.status === "idle";
+  if (tab === "paused") return agent.status === "paused";
+  if (tab === "error") return agent.status === "error";
+  return true;
+}
+
+function staffTitleForFilter(tab: KawaiiStaffFilterTab) {
+  if (tab === "active") return "Active Staff";
+  if (tab === "paused") return "Paused Staff";
+  if (tab === "error") return "Needs Attention";
+  return "All Agents";
+}
+
 export function KawaiiStaffRoom() {
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const location = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,25 +79,35 @@ export function KawaiiStaffRoom() {
   });
 
   const visuals = useMemo(() => mapVisuals(visualSets), [visualSets]);
-  const liveAgents = (agents ?? []).filter((agent) => agent.status !== "terminated");
-  const selected = liveAgents.find((agent) => agent.id === selectedId) ?? liveAgents[0] ?? null;
-  const selectedIndex = selected ? liveAgents.findIndex((agent) => agent.id === selected.id) : -1;
+  const filterTab = kawaiiStaffFilterFromPathname(location.pathname);
+  const visibleAgents = useMemo(
+    () => (agents ?? []).filter((agent) => matchesKawaiiStaffFilter(agent, filterTab)),
+    [agents, filterTab],
+  );
+  const selected = visibleAgents.find((agent) => agent.id === selectedId) ?? visibleAgents[0] ?? null;
+  const selectedIndex = selected ? visibleAgents.findIndex((agent) => agent.id === selected.id) : -1;
 
   useEffect(() => {
-    if (!selectedId && liveAgents[0]) setSelectedId(liveAgents[0].id);
-  }, [liveAgents, selectedId]);
+    if (visibleAgents.length === 0) {
+      if (selectedId) setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !visibleAgents.some((agent) => agent.id === selectedId)) {
+      setSelectedId(visibleAgents[0].id);
+    }
+  }, [visibleAgents, selectedId]);
 
   return (
     <div className="kawaii-staff-room">
       <section className="kawaii-card kawaii-roster">
         <div className="kawaii-page-title">
-          <h2>All Agents</h2>
-          <p>{liveAgents.length} / {agents?.length ?? 0}</p>
+          <h2>{staffTitleForFilter(filterTab)}</h2>
+          <p>{visibleAgents.length} / {agents?.length ?? 0}</p>
         </div>
         <button className="kawaii-sidebar__primary" onClick={openNewAgent}>
           + Hire Agent
         </button>
-        {liveAgents.map((agent, index) => (
+        {visibleAgents.map((agent, index) => (
           <button
             key={agent.id}
             className={selected?.id === agent.id ? "kawaii-roster__item is-active" : "kawaii-roster__item"}

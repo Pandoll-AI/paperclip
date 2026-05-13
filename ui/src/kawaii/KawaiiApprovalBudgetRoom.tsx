@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 import type { Approval, Agent, KawaiiAssetSet } from "@paperclipai/shared";
@@ -14,6 +15,8 @@ import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
 import { KawaiiPortrait } from "./KawaiiVisuals";
 import { needsKawaiiPolling } from "./assets";
 import { kawaiiCeoHonorific, kawaiiStaffLabel } from "./display";
+
+export type KawaiiApprovalFilter = "pending" | "all";
 
 function titleForApproval(approval: Approval) {
   const payload = approval.payload ?? {};
@@ -31,10 +34,25 @@ function visualMap(sets: KawaiiAssetSet[] | undefined) {
   return map;
 }
 
+export function kawaiiApprovalFilterFromPathname(pathname: string): KawaiiApprovalFilter {
+  const segments = pathname.split("/").filter(Boolean);
+  const approvalsIndex = segments.indexOf("approvals");
+  return approvalsIndex >= 0 && segments[approvalsIndex + 1] === "all" ? "all" : "pending";
+}
+
+export function isActionableApprovalStatus(status: Approval["status"]) {
+  return status === "pending" || status === "revision_requested";
+}
+
+function approvalStatusLabel(status: Approval["status"]) {
+  return status.replace(/_/g, " ");
+}
+
 export function KawaiiApprovalBudgetRoom() {
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const ceoHonorific = kawaiiCeoHonorific(selectedCompany);
 
@@ -64,15 +82,30 @@ export function KawaiiApprovalBudgetRoom() {
     refetchInterval: (query) => needsKawaiiPolling(query.state.data) ? 4_000 : false,
   });
   const visuals = useMemo(() => visualMap(visualSets), [visualSets]);
-  const queue = (approvals ?? [])
-    .filter((approval) => approval.status === "pending" || approval.status === "revision_requested")
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const selected = queue.find((approval) => approval.id === selectedId) ?? queue[0] ?? null;
+  const statusFilter = kawaiiApprovalFilterFromPathname(location.pathname);
+  const pendingApprovals = useMemo(
+    () => (approvals ?? []).filter((approval) => isActionableApprovalStatus(approval.status)),
+    [approvals],
+  );
+  const visibleApprovals = useMemo(
+    () => (approvals ?? [])
+      .filter((approval) => statusFilter === "all" || isActionableApprovalStatus(approval.status))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [approvals, statusFilter],
+  );
+  const selected = visibleApprovals.find((approval) => approval.id === selectedId) ?? visibleApprovals[0] ?? null;
   const selectedAgent = selected ? requester(selected, agents) : null;
+  const selectedIsActionable = selected ? isActionableApprovalStatus(selected.status) : false;
 
   useEffect(() => {
-    if (!selectedId && queue[0]) setSelectedId(queue[0].id);
-  }, [queue, selectedId]);
+    if (visibleApprovals.length === 0) {
+      if (selectedId) setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !visibleApprovals.some((approval) => approval.id === selectedId)) {
+      setSelectedId(visibleApprovals[0].id);
+    }
+  }, [visibleApprovals, selectedId]);
 
   const approve = useMutation({
     mutationFn: (id: string) => approvalsApi.approve(id, "Approved from Kawaii Approval Room"),
@@ -89,21 +122,26 @@ export function KawaiiApprovalBudgetRoom() {
 
   const spend = budget?.policies.reduce((sum, policy) => sum + policy.observedAmount, 0) ?? 0;
   const totalBudget = budget?.policies.reduce((sum, policy) => sum + policy.amount, 0) ?? 0;
+  const riskLabel = (budget?.activeIncidents.length ?? 0) > 0
+    ? "Incident"
+    : pendingApprovals.length > 0
+      ? "Review"
+      : "Clear";
 
   return (
     <div className="kawaii-page">
       <section className="kawaii-stat-strip">
-        <div className="kawaii-stat"><span><Clock className="h-4 w-4" /></span><div><p>Pending Approvals</p><strong>{queue.length}</strong></div></div>
+        <div className="kawaii-stat"><span><Clock className="h-4 w-4" /></span><div><p>Pending Approvals</p><strong>{pendingApprovals.length}</strong></div></div>
         <div className="kawaii-stat"><span><ShieldCheck className="h-4 w-4" /></span><div><p>Monthly Budget</p><strong>{formatCents(totalBudget)}</strong></div></div>
         <div className="kawaii-stat"><span><CheckCircle2 className="h-4 w-4" /></span><div><p>Spend (MTD)</p><strong>{formatCents(spend)}</strong></div></div>
-        <div className="kawaii-stat"><span><AlertTriangle className="h-4 w-4" /></span><div><p>Risk Level</p><strong>{queue.length > 2 ? "Medium" : "Safe"}</strong></div></div>
+        <div className="kawaii-stat"><span><AlertTriangle className="h-4 w-4" /></span><div><p>Risk Level</p><strong>{riskLabel}</strong></div></div>
       </section>
 
       <section className="kawaii-approval-room">
         <div className="kawaii-panel">
-          <h3>Approval Queue <span className="kawaii-pill">{queue.length}</span></h3>
+          <h3>{statusFilter === "all" ? "Approval History" : "Approval Queue"} <span className="kawaii-pill">{visibleApprovals.length}</span></h3>
           <div className="kawaii-list">
-            {queue.map((approval) => {
+            {visibleApprovals.map((approval) => {
               const agent = requester(approval, agents);
               const agentIndex = agent ? (agents ?? []).findIndex((candidate) => candidate.id === agent.id) : -1;
               return (
@@ -124,12 +162,17 @@ export function KawaiiApprovalBudgetRoom() {
                 </button>
               );
             })}
-            {queue.length === 0 && <div><span>No pending approvals</span><strong>Safe</strong></div>}
+            {visibleApprovals.length === 0 && (
+              <div>
+                <span>{statusFilter === "all" ? "No approvals yet" : "No pending approvals"}</span>
+                <strong>Clear</strong>
+              </div>
+            )}
           </div>
         </div>
 
         <article className="kawaii-card kawaii-decision-card">
-          <h2>Approval Request</h2>
+          <h2>{statusFilter === "all" ? "Approval Detail" : "Approval Request"}</h2>
           {selected ? (
             <>
               <div className="kawaii-decision-card__body">
@@ -144,24 +187,33 @@ export function KawaiiApprovalBudgetRoom() {
                   size="card"
                 />
                 <div>
-                  <span className="kawaii-pill">High Priority</span>
+                  <span className="kawaii-pill">{approvalStatusLabel(selected.status)}</span>
                   <h3>{titleForApproval(selected)}</h3>
-                  <p>에이전트가 {ceoHonorific}의 결정을 기다리고 있습니다. 제한 승인으로 위험을 줄이거나, 전체 승인으로 속도를 높일 수 있습니다.</p>
+                  <p>
+                    {selectedIsActionable
+                      ? `에이전트가 ${ceoHonorific}의 결정을 기다리고 있습니다. 제한 승인으로 위험을 줄이거나, 전체 승인으로 속도를 높일 수 있습니다.`
+                      : "이 승인 요청은 이미 처리되었습니다. 기록은 감사와 회고를 위해 유지됩니다."}
+                  </p>
                   <div className="kawaii-list">
                     <div><span>Requester</span><strong>{selectedAgent ? kawaiiStaffLabel(selectedAgent) : "Board"}</strong></div>
                     <div><span>Created</span><strong>{new Date(selected.createdAt).toLocaleTimeString()}</strong></div>
+                    {selected.decidedAt && (
+                      <div><span>Resolved</span><strong>{new Date(selected.decidedAt).toLocaleTimeString()}</strong></div>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="kawaii-decision-grid">
-                <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Limited</button>
-                <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Full</button>
-                <button onClick={() => reject.mutate(selected.id)} disabled={reject.isPending}><XCircle className="inline h-4 w-4" /> Deny</button>
-                <button>Ask for More Info</button>
-              </div>
+              {selectedIsActionable && (
+                <div className="kawaii-decision-grid">
+                  <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Limited</button>
+                  <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Full</button>
+                  <button onClick={() => reject.mutate(selected.id)} disabled={reject.isPending}><XCircle className="inline h-4 w-4" /> Deny</button>
+                  <button>Ask for More Info</button>
+                </div>
+              )}
             </>
           ) : (
-            <p>대기 중인 승인 요청이 없습니다.</p>
+            <p>{statusFilter === "all" ? "승인 기록이 없습니다." : "대기 중인 승인 요청이 없습니다."}</p>
           )}
         </article>
 
@@ -175,11 +227,11 @@ export function KawaiiApprovalBudgetRoom() {
             </div>
           </div>
           <div className="kawaii-panel">
-            <h3>Risk Forecast</h3>
+            <h3>Budget Signals</h3>
             <div className="kawaii-list">
-              <div><span>Today</span><strong>Safe</strong></div>
-              <div><span>This Week</span><strong>{queue.length > 2 ? "Medium" : "Safe"}</strong></div>
-              <div><span>Month End</span><strong>Safe</strong></div>
+              <div><span>Active incidents</span><strong>{budget?.activeIncidents.length ?? 0}</strong></div>
+              <div><span>Budget approvals</span><strong>{budget?.pendingApprovalCount ?? 0}</strong></div>
+              <div><span>Paused agents</span><strong>{budget?.pausedAgentCount ?? 0}</strong></div>
             </div>
           </div>
         </div>

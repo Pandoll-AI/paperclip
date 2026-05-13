@@ -13,7 +13,6 @@ import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 import { formatCents } from "../lib/utils";
 import { KawaiiPortrait, KawaiiMiniChart } from "./KawaiiVisuals";
-import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
 import { needsKawaiiPolling } from "./assets";
 import { kawaiiGeneratedAssets } from "./generatedAssets";
 import { kawaiiFirstName, kawaiiStaffLabel, kawaiiStaffTitle } from "./display";
@@ -66,20 +65,37 @@ export function KawaiiOfficeDashboard() {
   });
 
   const visuals = useMemo(() => assetMap(visualSets), [visualSets]);
-  const leadAgent = (agents ?? []).find((agent) => agent.role !== "ceo") ?? (agents ?? [])[0] ?? null;
-  const leadAgentIndex = leadAgent ? (agents ?? []).findIndex((agent) => agent.id === leadAgent.id) : -1;
-  const pendingApprovals = (approvals ?? []).filter((approval) => approval.status === "pending" || approval.status === "revision_requested").length;
-  const activeAgents = (agents ?? []).filter((agent) => agent.status !== "terminated").length;
-  const openIssues = (issues ?? []).filter((issue) => issue.status !== "done" && issue.status !== "cancelled").length;
-  const runValues = summary?.runActivity.map((day) => day.total) ?? [2, 4, 3, 6, 5, 8, 7];
+  const allAgents = agents ?? [];
+  const allIssues = issues ?? [];
+  const leadAgent = allAgents.find((agent) => agent.role !== "ceo") ?? allAgents[0] ?? null;
+  const leadAgentIndex = leadAgent ? allAgents.findIndex((agent) => agent.id === leadAgent.id) : -1;
+  const actionableApprovals = (approvals ?? []).filter((approval) => approval.status === "pending" || approval.status === "revision_requested").length;
+  const pendingApprovals = approvals ? actionableApprovals : summary?.pendingApprovals ?? 0;
+  const activeAgents = summary
+    ? summary.agents.active + summary.agents.running
+    : allAgents.filter((agent) => agent.status === "active" || agent.status === "idle" || agent.status === "running").length;
+  const operationalAgents = agents
+    ? allAgents.filter((agent) => agent.status !== "terminated").length
+    : (summary?.agents.active ?? 0) + (summary?.agents.running ?? 0) + (summary?.agents.paused ?? 0) + (summary?.agents.error ?? 0);
+  const openQuestCount = summary?.tasks.open ?? allIssues.filter((issue) => issue.status !== "done" && issue.status !== "cancelled").length;
+  const doneQuestCount = summary?.tasks.done ?? allIssues.filter((issue) => issue.status === "done").length;
+  const totalQuestCount = openQuestCount + doneQuestCount;
+  const questCompletionPercent = totalQuestCount > 0 ? Math.round((doneQuestCount / totalQuestCount) * 100) : null;
+  const activeIncidentCount = summary?.budgets.activeIncidents ?? 0;
+  const pausedCount = (summary?.budgets.pausedAgents ?? 0) + (summary?.budgets.pausedProjects ?? 0);
+  const riskLabel = activeIncidentCount > 0 ? "Incident" : pausedCount > 0 ? "Paused" : pendingApprovals > 0 ? "Review" : "Clear";
+  const runValues = summary?.runActivity.map((day) => day.total) ?? [];
+  const budgetUtilization = summary?.costs.monthBudgetCents
+    ? Math.round(summary.costs.monthUtilizationPercent)
+    : null;
 
   return (
     <div className="kawaii-page">
       <section className="kawaii-stat-strip">
-        <div className="kawaii-stat"><span><Star className="h-4 w-4" /></span><div><p>Main Goal</p><strong>Launch Onboarding MVP</strong></div></div>
+        <div className="kawaii-stat"><span><Star className="h-4 w-4" /></span><div><p>Open Quests</p><strong>{openQuestCount}</strong></div></div>
         <div className="kawaii-stat"><span><DollarSign className="h-4 w-4" /></span><div><p>Budget</p><strong>{formatCents(summary?.costs.monthSpendCents ?? 0)} / {formatCents(summary?.costs.monthBudgetCents ?? 0)}</strong></div></div>
-        <div className="kawaii-stat"><span><Users className="h-4 w-4" /></span><div><p>Active Agents</p><strong>{activeAgents} / {agents?.length ?? 0}</strong></div></div>
-        <div className="kawaii-stat"><span><Leaf className="h-4 w-4" /></span><div><p>Risk Level</p><strong>{pendingApprovals > 2 ? "Medium" : "Low"}</strong></div></div>
+        <div className="kawaii-stat"><span><Users className="h-4 w-4" /></span><div><p>Active Agents</p><strong>{activeAgents} / {operationalAgents}</strong></div></div>
+        <div className="kawaii-stat"><span><Leaf className="h-4 w-4" /></span><div><p>Risk Level</p><strong>{riskLabel}</strong></div></div>
         <div className="kawaii-stat"><span><ShieldCheck className="h-4 w-4" /></span><div><p>Pending Approvals</p><strong>{pendingApprovals}</strong></div></div>
       </section>
 
@@ -116,10 +132,10 @@ export function KawaiiOfficeDashboard() {
                   <KawaiiPortrait agent={agent} assetSet={visuals.get(agent.id)} size="card" characterIndex={index} />
                 </div>
                 <dl>
-                  <div><dt>Task</dt><dd>{openIssues > 0 ? "Review queue" : "Ready"}</dd></div>
+                  <div><dt>Queue</dt><dd>{openQuestCount > 0 ? `${openQuestCount} open` : "Clear"}</dd></div>
                   <div><dt>Status</dt><dd>{agent.status}</dd></div>
                   <div><dt>Cost</dt><dd>{formatCents(agent.spentMonthlyCents ?? 0)}</dd></div>
-                  <div><dt>ETA</dt><dd>24 min</dd></div>
+                  <div><dt>Role</dt><dd>{roleLabel(agent)}</dd></div>
                 </dl>
               </article>
             ))}
@@ -138,12 +154,12 @@ export function KawaiiOfficeDashboard() {
               <KawaiiMiniChart values={runValues} />
             </div>
             <div className="kawaii-panel">
-              <h3>Cost Trend</h3>
-              <KawaiiMiniChart values={[1, 2, 3, 5, 6, 7, 9]} />
+              <h3>Budget Usage</h3>
+              <div className="kawaii-budget-donut"><strong>{budgetUtilization === null ? "No budget" : `${budgetUtilization}%`}</strong></div>
             </div>
             <div className="kawaii-panel">
-              <h3>Quest Success Rate</h3>
-              <div className="kawaii-budget-donut"><strong>92%</strong></div>
+              <h3>Quest Completion</h3>
+              <div className="kawaii-budget-donut"><strong>{questCompletionPercent === null ? "No quests" : `${questCompletionPercent}%`}</strong></div>
             </div>
           </div>
         </div>

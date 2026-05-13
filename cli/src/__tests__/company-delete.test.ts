@@ -21,11 +21,12 @@ function makeCompany(overrides: Partial<Company>): Company {
     feedbackDataSharingConsentByUserId: null,
     feedbackDataSharingTermsVersion: null,
     brandColor: null,
-    logoAssetId: null,
-    logoUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
+    ceoHonorific: overrides.ceoHonorific ?? null,
+    logoAssetId: overrides.logoAssetId ?? null,
+    logoUrl: overrides.logoUrl ?? null,
   };
 }
 
