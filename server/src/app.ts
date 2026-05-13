@@ -83,6 +83,16 @@ const VITE_DEV_STATIC_PATHS = new Set([
   "/sw.js",
 ]);
 
+function isKawaiiStaticFile(filePath: string): boolean {
+  return filePath.split(path.sep).includes("kawaii");
+}
+
+function setMutableStaticAssetHeaders(res: express.Response, filePath: string): void {
+  if (isKawaiiStaticFile(filePath)) {
+    res.set("Cache-Control", "no-cache");
+  }
+}
+
 export function resolveViteHmrPort(serverPort: number): number {
   if (serverPort <= 55_535) {
     return serverPort + 10_000;
@@ -339,6 +349,7 @@ export async function createApp(
             if (path.basename(filePath) === "index.html") {
               res.set("Cache-Control", "no-cache");
             }
+            setMutableStaticAssetHeaders(res, filePath);
           },
         }),
       );
@@ -390,7 +401,7 @@ export async function createApp(
     const renderViteHtml = viteHtmlRenderer;
 
     if (fs.existsSync(publicUiRoot)) {
-      app.use(express.static(publicUiRoot, { index: false }));
+      app.use(express.static(publicUiRoot, { index: false, setHeaders: setMutableStaticAssetHeaders }));
     }
     app.get(/.*/, async (req, res, next) => {
       if (!shouldServeViteDevHtml(req)) {

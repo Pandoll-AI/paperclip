@@ -19,12 +19,18 @@ export type KawaiiCharacter = {
   moods: string[];
 };
 
-const referenceImage = "/kawaii/characters/reference/character-lineup-reference.png";
-const sourceImage = (id: KawaiiCharacterId) => `/kawaii/characters/sources/${id}-white.png`;
-const sceneImage = (id: KawaiiCharacterId) => `/kawaii/characters/scenes/${id}-dialogue-scene.png`;
-const dockCutinImage = (id: KawaiiCharacterId) => `/kawaii/characters/cutins/${id}-dock.png`;
+export const kawaiiStaticAssetVersion = "20260513-waist-cutins";
 
-export const kawaiiUserOutline = "/kawaii/generated/ceo-crest-avatar.png";
+function kawaiiStaticAsset(pathname: string): string {
+  return `${pathname}?v=${kawaiiStaticAssetVersion}`;
+}
+
+const referenceImage = kawaiiStaticAsset("/kawaii/characters/reference/character-lineup-reference.png");
+const sourceImage = (id: KawaiiCharacterId) => kawaiiStaticAsset(`/kawaii/characters/sources/${id}-white.png`);
+const sceneImage = (id: KawaiiCharacterId) => kawaiiStaticAsset(`/kawaii/characters/scenes/${id}-dialogue-scene.png`);
+const dockCutinImage = (id: KawaiiCharacterId) => kawaiiStaticAsset(`/kawaii/characters/cutins/${id}-dock.png`);
+
+export const kawaiiUserOutline = kawaiiStaticAsset("/kawaii/generated/ceo-crest-avatar.png");
 
 export const kawaiiCharacters: KawaiiCharacter[] = [
   {
@@ -32,7 +38,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     name: "Rika",
     role: "CTO / Engineer",
     accent: "#9a78dc",
-    avatarImage: "/kawaii/characters/avatars/rika.png",
+    avatarImage: kawaiiStaticAsset("/kawaii/characters/avatars/rika.png"),
     sourceImage: sourceImage("rika"),
     sceneImage: sceneImage("rika"),
     dockCutinImage: dockCutinImage("rika"),
@@ -48,7 +54,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     name: "Sera",
     role: "PM / UI Designer",
     accent: "#8fb3e8",
-    avatarImage: "/kawaii/characters/avatars/sera.png",
+    avatarImage: kawaiiStaticAsset("/kawaii/characters/avatars/sera.png"),
     sourceImage: sourceImage("sera"),
     sceneImage: sceneImage("sera"),
     dockCutinImage: dockCutinImage("sera"),
@@ -64,7 +70,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     name: "Yuna",
     role: "QA Agent",
     accent: "#f4a34d",
-    avatarImage: "/kawaii/characters/avatars/yuna.png",
+    avatarImage: kawaiiStaticAsset("/kawaii/characters/avatars/yuna.png"),
     sourceImage: sourceImage("yuna"),
     sceneImage: sceneImage("yuna"),
     dockCutinImage: dockCutinImage("yuna"),
@@ -80,7 +86,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     name: "Nari",
     role: "Finance Agent",
     accent: "#75c8a3",
-    avatarImage: "/kawaii/characters/avatars/nari.png",
+    avatarImage: kawaiiStaticAsset("/kawaii/characters/avatars/nari.png"),
     sourceImage: sourceImage("nari"),
     sceneImage: sceneImage("nari"),
     dockCutinImage: dockCutinImage("nari"),

@@ -38,7 +38,7 @@ describe("KawaiiDialogueDock", () => {
     });
 
     const cutin = container.querySelector(".kawaii-dialogue-dock__cutin img");
-    expect(cutin?.getAttribute("src")).toBe("/kawaii/characters/cutins/sera-dock.png");
+    expect(cutin?.getAttribute("src")).toMatch(/^\/kawaii\/characters\/cutins\/sera-dock\.png\?v=/);
     expect(container.querySelector(".kawaii-dialogue-dock__scene")).toBeNull();
 
     await act(async () => {
