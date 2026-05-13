@@ -1140,8 +1140,8 @@
 }
 
 .kawaii-staff-stage .kawaii-portrait--hero img {
-  object-fit: contain;
-  object-position: center bottom;
+  object-fit: cover;
+  object-position: 74% center;
   background: transparent;
 }
 
