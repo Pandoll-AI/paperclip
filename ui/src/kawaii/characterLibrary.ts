@@ -19,7 +19,7 @@ export type KawaiiCharacter = {
   moods: string[];
 };
 
-export const kawaiiStaticAssetVersion = "20260514-rika-hand-panel-nav";
+export const kawaiiStaticAssetVersion = "20260514-rika-dock-mask-fix";
 
 function kawaiiStaticAsset(pathname: string): string {
   return `${pathname}?v=${kawaiiStaticAssetVersion}`;

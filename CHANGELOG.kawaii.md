@@ -13,3 +13,4 @@
 - Validated kawaii menu targets against known routes and fixed mismatched runtime and project-creation menu actions.
 - Polished Kawaii interaction and identity rules across alarm controls, dialogue choices, Staff display, Korean copy, and Staff Room character staging.
 - Fixed the Rika dialogue scene hand artifact, tightened Staff image prompts against duplicate hands/arms, and remapped Staff Room arrow buttons to cycle detail panels instead of Staff people.
+- Restored Rika dock cut-in laptop and shoulder opacity while keeping the extra hand removed.
