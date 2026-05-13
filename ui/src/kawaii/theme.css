@@ -1192,7 +1192,7 @@
 
 .kawaii-dialogue-dock__cutin {
   position: absolute;
-  right: clamp(-8px, 1vw, 16px);
+  right: clamp(-18px, calc(1vw - 10px), 6px);
   bottom: -12px;
   z-index: 4;
   width: clamp(210px, 20vw, 330px);
