@@ -10,6 +10,7 @@ export type KawaiiCharacter = {
   avatarImage: string;
   sourceImage: string;
   sceneImage: string;
+  dockCutinImage: string;
   referenceImage: string;
   avatarTraits: string[];
   expressions: string[];
@@ -21,6 +22,7 @@ export type KawaiiCharacter = {
 const referenceImage = "/kawaii/characters/reference/character-lineup-reference.png";
 const sourceImage = (id: KawaiiCharacterId) => `/kawaii/characters/sources/${id}-white.png`;
 const sceneImage = (id: KawaiiCharacterId) => `/kawaii/characters/scenes/${id}-dialogue-scene.png`;
+const dockCutinImage = (id: KawaiiCharacterId) => `/kawaii/characters/cutins/${id}-dock.png`;
 
 export const kawaiiUserOutline = "/kawaii/generated/ceo-crest-avatar.png";
 
@@ -33,6 +35,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     avatarImage: "/kawaii/characters/avatars/rika.png",
     sourceImage: sourceImage("rika"),
     sceneImage: sceneImage("rika"),
+    dockCutinImage: dockCutinImage("rika"),
     referenceImage,
     avatarTraits: ["black hair with purple sheen", "violet eyes", "purple headphones", "gold code hairpin"],
     expressions: ["neutral", "happy", "thinking", "concerned", "celebrating", "confident"],
@@ -48,6 +51,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     avatarImage: "/kawaii/characters/avatars/sera.png",
     sourceImage: sourceImage("sera"),
     sceneImage: sceneImage("sera"),
+    dockCutinImage: dockCutinImage("sera"),
     referenceImage,
     avatarTraits: ["honey-blonde hair", "blue eyes", "blue bow", "stationery planner accessory"],
     expressions: ["neutral", "happy", "explaining", "thinking", "gentle concern", "approval smile"],
@@ -63,6 +67,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     avatarImage: "/kawaii/characters/avatars/yuna.png",
     sourceImage: sourceImage("yuna"),
     sceneImage: sceneImage("yuna"),
+    dockCutinImage: dockCutinImage("yuna"),
     referenceImage,
     avatarTraits: ["silver-white hair", "amber eyes", "orange flower hair clip", "cream QA uniform"],
     expressions: ["neutral", "observing", "concerned", "strict", "happy", "resolved"],
@@ -78,6 +83,7 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     avatarImage: "/kawaii/characters/avatars/nari.png",
     sourceImage: sourceImage("nari"),
     sceneImage: sceneImage("nari"),
+    dockCutinImage: dockCutinImage("nari"),
     referenceImage,
     avatarTraits: ["warm brown bob", "green eyes", "round glasses", "green finance ribbon"],
     expressions: ["neutral", "thinking", "concerned", "approving", "warning", "soft smile"],

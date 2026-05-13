@@ -131,6 +131,14 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
     "clipped head",
     "clipped shoes",
   ].join(", ");
+  const dialogueCutinRule = [
+    `Use ${character.sourceCharacterImage} as the approved source-character image.`,
+    "Generate a background-removed visual novel dialogue cut-in PNG.",
+    "Crop is waist-up, ending at the waist or upper abdomen; no legs or lower body are visible.",
+    "Head, hair, shoulders, hands, and role accessory remain visible.",
+    "Character faces slightly toward the CEO/operator and fits a lower-right dialogue dock.",
+    "No scene background, no rectangle, no frame, no UI text.",
+  ].join(" ");
 
   const assets: KawaiiAssetEntry[] = [
     staffEntry(character, {
@@ -195,6 +203,25 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
       size: "1024x1536",
       prompt: `${base} Half-body bust portrait, warning or caution expression, still cute and respectful, no alarmist harshness.`,
       negativePrompt,
+    }),
+    staffEntry(character, {
+      key: "dialogue_cutin_default",
+      label: "Default dialogue cut-in",
+      role: "dialogue",
+      expression: "talking",
+      size: "1024x1024",
+      prompt: `${base} ${dialogueCutinRule} Expression: calm talking, warm and attentive.`,
+      negativePrompt: `${negativePrompt}, full-body stage scene, visible legs, office background, landscape background, hard rectangular border, cropped head, missing hands, unreadable UI text`,
+    }),
+    staffEntry(character, {
+      key: "dialogue_cutin_emotional",
+      label: "Emotional dialogue cut-in",
+      role: "dialogue",
+      expression: "concerned",
+      mood: character.allowedMoods[2],
+      size: "1024x1024",
+      prompt: `${base} ${dialogueCutinRule} Expression: ${character.allowedMoods[2]} but cute, suitable for approvals, warnings, or important dialogue.`,
+      negativePrompt: `${negativePrompt}, full-body stage scene, visible legs, office background, landscape background, hard rectangular border, cropped head, missing hands, unreadable UI text`,
     }),
     staffEntry(character, {
       key: "portrait_full_idle",
@@ -273,7 +300,7 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
     batchPrompt: [
       "Generate a consistent Paperclip kawaii staff character image set.",
       "Every item must preserve the same character identity and outfit family.",
-      "Large character presentation uses complete character-in-scene illustrations.",
+      "Large stage panels use complete character-in-scene illustrations; the lower-right dialogue dock uses background-removed waist-up dialogue cut-ins.",
       base,
     ].join(" "),
     negativePrompt,

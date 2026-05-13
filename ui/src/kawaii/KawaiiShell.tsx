@@ -352,8 +352,8 @@ export function KawaiiDialogueDock() {
           </button>
         ))}
       </div>
-      <div className="kawaii-dialogue-dock__scene">
-        <img src={scene.character.sceneImage} alt="" loading="lazy" />
+      <div className="kawaii-dialogue-dock__cutin">
+        <img src={scene.character.dockCutinImage} alt="" loading="lazy" />
       </div>
     </section>
   );

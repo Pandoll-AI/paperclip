@@ -157,9 +157,10 @@ Display rules:
 - Scene matching comes from `sceneRegistry.ts`.
 - Text should use the CEO honorific when addressing the user.
 - Choices are short operational options, not marketing copy.
-- The character visual is a finished character-in-scene image.
-- The dialogue scene image may occupy the lower-right UI edge, but must not block primary controls.
-- Character head, hair, hands, legs, and feet must not be clipped or hollow.
+- The lower-right character visual is a background-removed `dialogue_cutin`.
+- Dialogue cut-ins are waist-up images, not full scene crops.
+- The dialogue cut-in may overlay the lower-right UI edge, but must not block primary controls.
+- Character head, hair, shoulders, hands, and key accessory must not be clipped.
 
 ### Avatars And Character Art
 
@@ -170,7 +171,8 @@ Required assets for generated Staff sets:
 - `avatar_square`: small roster and compact identity.
 - `portrait_bust`: cards, side panels, and detail summaries.
 - `portrait_full`: Staff room stage and large profile views.
-- `scene_composite`: full character-in-scene image for large panels, staff detail, and dialogue dock.
+- `scene_composite`: full character-in-scene image for large panels and staff detail.
+- `dialogue_cutin`: background-removed waist-up character image for the bottom dialogue dock.
 - `scene_background_*`: visual-novel style route backgrounds.
 - Reference metadata: traits, expressions, scenes, accessories, and moods.
 
@@ -179,6 +181,7 @@ Display rules:
 - `KawaiiPortrait` handles larger Staff presentation.
 - Generated `scene_composite_*` assets should be preferred when ready.
 - Local scene composites are the only bundled fallback for large character presentation.
+- Local dialogue cut-ins live under `/kawaii/characters/cutins/`.
 - Loading states should shimmer or paint softly instead of showing broken images.
 - The CEO/user outline is never replaced by a generated face.
 - Approved source-character images live under `/kawaii/characters/sources/`.
@@ -187,6 +190,7 @@ Display rules:
 
 Purpose:
 - Make every large character image a finished visual-novel scene.
+- Replace the need for a separate page background in large character panels.
 
 Generation rules:
 - Input is an approved source-character image.
@@ -207,6 +211,21 @@ Generation rules:
   - Changed face identity.
   - Clipped head, hair, hands, legs, feet, or shoes.
   - Visible source-card border, hard rectangular paste edge, or unfinished background around the character.
+
+### Dialogue Cut-In Contract
+
+Purpose:
+- Render the lower-right visual-novel Staff character in `KawaiiDialogueDock`.
+- Keep the dock character independent from the large scene composite.
+
+Generation rules:
+- Input is an approved source-character image.
+- Output is a background-removed PNG.
+- Crop is waist-up and ends at the waist or upper abdomen.
+- Legs and lower body are not visible.
+- Character faces slightly toward the CEO/operator.
+- Head, hair, shoulders, hands, and key role accessory remain visible.
+- No scene background, card, border, or office crop is included.
 
 ### Generated Scene Backgrounds
 

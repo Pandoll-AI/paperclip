@@ -16,6 +16,8 @@ export type KawaiiAssetSlot =
   | "portrait_bust_warning"
   | "portrait_full_idle"
   | "portrait_full_working"
+  | "dialogue_cutin_default"
+  | "dialogue_cutin_emotional"
   | "scene_composite_default"
   | "scene_composite_focus"
   | "scene_composite_warning"

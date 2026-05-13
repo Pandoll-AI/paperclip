@@ -16,11 +16,16 @@ export function KawaiiPortrait({
   size?: "hero" | "card" | "cutin";
   characterIndex?: number;
 }) {
-  const portrait = assetByKey(assetSet, size === "card" ? ["avatar_square"] : ["scene_composite"]);
+  const portrait = assetByKey(
+    assetSet,
+    size === "card" ? ["avatar_square"] : size === "cutin" ? ["dialogue_cutin"] : ["scene_composite"],
+  );
   const generating = isKawaiiGenerating(assetSet);
   const character = characterForAgent(agent, characterIndex);
   const fallbackSrc = size === "card"
     ? character.avatarImage
+    : size === "cutin"
+      ? character.dockCutinImage
     : character.sceneImage;
 
   return (
