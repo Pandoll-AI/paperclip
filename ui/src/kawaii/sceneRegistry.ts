@@ -38,14 +38,14 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     match: ["/approvals", "/costs"],
     speaker: { characterId: "nari", title: "Finance", name: "Nari" },
     text: ({ ceoHonorific }) => `${ceoHonorific}, 승인 요청과 예산 흐름을 함께 확인할 수 있도록 정리했어요. 위험한 선택은 제가 먼저 표시해둘게요.`,
-    choices: ["제한 승인한다", "전체 승인한다", "거절한다", "추가 설명 요청"],
+    choices: ["승인 대기 보기", "승인 기록 보기", "예산 확인", "Inbox 확인"],
   },
   {
     id: "issue_quest_room",
     match: ["/issues"],
     speaker: { characterId: "yuna", title: "QA", name: "Yuna" },
     text: () => "오늘의 퀘스트를 정리했어요. 우선순위가 높은 일부터 확인하면 팀이 더 빠르게 움직일 수 있어요.",
-    choices: ["진행 중 보기", "막힌 일 보기", "새 Quest 만들기", "Staff에게 요청"],
+    choices: ["진행 중 보기", "막힌 일 찾기", "새 Quest 만들기", "Staff 보기"],
   },
   {
     id: "goal_strategy_room",
@@ -80,7 +80,7 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     match: ["/companies", "/org", "/onboarding"],
     speaker: { characterId: "sera", title: "PM", name: "Sera" },
     text: ({ companyName, ceoHonorific }) => `${ceoHonorific}, ${companyName}의 조직과 회사 흐름이 분명하게 보이도록 정리했어요.`,
-    choices: ["회사 선택", "조직도 보기", "Staff 관계", "운영 메모"],
+    choices: ["회사 선택", "조직도 보기", "Staff 보기", "운영 기록"],
   },
   {
     id: "tool_atelier",
@@ -110,7 +110,7 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     match: ["/dashboard", "/"],
     speaker: { characterId: "sera", title: "PM", name: "Sera" },
     text: ({ companyName, ceoHonorific }) => `좋은 아침이에요, ${ceoHonorific}. ${companyName}의 오늘 상황을 한눈에 볼 수 있게 준비했어요.`,
-    choices: ["승인 대기 보기", "오늘의 진행률 보기", "CTO와 대화", "예산 확인"],
+    choices: ["승인 대기 보기", "실행 상황 보기", "Staff 보기", "예산 확인"],
   },
 ];
 

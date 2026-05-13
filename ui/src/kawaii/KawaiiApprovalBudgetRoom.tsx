@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "@/lib/router";
+import { useLocation, useNavigate } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 import type { Approval, Agent, KawaiiAssetSet } from "@paperclipai/shared";
@@ -44,6 +44,10 @@ export function isActionableApprovalStatus(status: Approval["status"]) {
   return status === "pending" || status === "revision_requested";
 }
 
+export function canRequestMoreInfo(status: Approval["status"]) {
+  return status === "pending";
+}
+
 function approvalStatusLabel(status: Approval["status"]) {
   return status.replace(/_/g, " ");
 }
@@ -53,6 +57,7 @@ export function KawaiiApprovalBudgetRoom() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const ceoHonorific = kawaiiCeoHonorific(selectedCompany);
 
@@ -119,6 +124,12 @@ export function KawaiiApprovalBudgetRoom() {
       queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
     },
   });
+  const requestMoreInfo = useMutation({
+    mutationFn: (id: string) => approvalsApi.requestRevision(id, "Additional details requested from Kawaii Approval Room"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
+    },
+  });
 
   const spend = budget?.policies.reduce((sum, policy) => sum + policy.observedAmount, 0) ?? 0;
   const totalBudget = budget?.policies.reduce((sum, policy) => sum + policy.amount, 0) ?? 0;
@@ -146,6 +157,7 @@ export function KawaiiApprovalBudgetRoom() {
               const agentIndex = agent ? (agents ?? []).findIndex((candidate) => candidate.id === agent.id) : -1;
               return (
                 <button
+                  type="button"
                   key={approval.id}
                   className={selected?.id === approval.id ? "kawaii-approval-card is-active" : "kawaii-approval-card"}
                   onClick={() => setSelectedId(approval.id)}
@@ -191,7 +203,7 @@ export function KawaiiApprovalBudgetRoom() {
                   <h3>{titleForApproval(selected)}</h3>
                   <p>
                     {selectedIsActionable
-                      ? `에이전트가 ${ceoHonorific}의 결정을 기다리고 있습니다. 제한 승인으로 위험을 줄이거나, 전체 승인으로 속도를 높일 수 있습니다.`
+                      ? `에이전트가 ${ceoHonorific}의 결정을 기다리고 있습니다. 승인, 상세 확인, 거절, 추가 설명 요청 중 하나를 선택할 수 있습니다.`
                       : "이 승인 요청은 이미 처리되었습니다. 기록은 감사와 회고를 위해 유지됩니다."}
                   </p>
                   <div className="kawaii-list">
@@ -205,10 +217,16 @@ export function KawaiiApprovalBudgetRoom() {
               </div>
               {selectedIsActionable && (
                 <div className="kawaii-decision-grid">
-                  <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Limited</button>
-                  <button onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve Full</button>
-                  <button onClick={() => reject.mutate(selected.id)} disabled={reject.isPending}><XCircle className="inline h-4 w-4" /> Deny</button>
-                  <button>Ask for More Info</button>
+                  <button type="button" onClick={() => approve.mutate(selected.id)} disabled={approve.isPending}>Approve</button>
+                  <button type="button" onClick={() => navigate(`/approvals/${selected.id}`)}>Open Detail</button>
+                  <button type="button" onClick={() => reject.mutate(selected.id)} disabled={reject.isPending}><XCircle className="inline h-4 w-4" /> Deny</button>
+                  <button
+                    type="button"
+                    onClick={() => requestMoreInfo.mutate(selected.id)}
+                    disabled={requestMoreInfo.isPending || !canRequestMoreInfo(selected.status)}
+                  >
+                    Ask for More Info
+                  </button>
                 </div>
               )}
             </>

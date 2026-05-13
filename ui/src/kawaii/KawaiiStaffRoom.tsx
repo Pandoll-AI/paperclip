@@ -128,11 +128,12 @@ export function KawaiiStaffRoom() {
           <h2>{staffTitleForFilter(filterTab)}</h2>
           <p>{visibleAgents.length} / {agents?.length ?? 0}</p>
         </div>
-        <button className="kawaii-sidebar__primary" onClick={openNewAgent}>
+        <button type="button" className="kawaii-sidebar__primary" onClick={openNewAgent}>
           + Hire Agent
         </button>
         {visibleAgents.map((agent, index) => (
           <button
+            type="button"
             key={agent.id}
             className={selected?.id === agent.id ? "kawaii-roster__item is-active" : "kawaii-roster__item"}
             onClick={() => setSelectedId(agent.id)}

@@ -177,7 +177,7 @@ export function KawaiiQuestRoom() {
           <div><GitPullRequest className="h-4 w-4" /><span>Review</span><strong>{reviewCount}</strong></div>
           <div><ShieldAlert className="h-4 w-4" /><span>Blocked</span><strong>{blockedCount}</strong></div>
         </div>
-        <button className="kawaii-scene-band__action" onClick={() => openNewIssue()}>
+        <button type="button" className="kawaii-scene-band__action" onClick={() => openNewIssue()}>
           <Plus className="h-4 w-4" />
           New Quest
         </button>

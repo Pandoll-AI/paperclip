@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canRequestMoreInfo,
   isActionableApprovalStatus,
   kawaiiApprovalFilterFromPathname,
 } from "./KawaiiApprovalBudgetRoom";
@@ -18,5 +19,12 @@ describe("kawaii approval route filters", () => {
     expect(isActionableApprovalStatus("approved")).toBe(false);
     expect(isActionableApprovalStatus("rejected")).toBe(false);
     expect(isActionableApprovalStatus("cancelled")).toBe(false);
+  });
+
+  it("only maps the more-info action to approvals that can request revision", () => {
+    expect(canRequestMoreInfo("pending")).toBe(true);
+    expect(canRequestMoreInfo("revision_requested")).toBe(false);
+    expect(canRequestMoreInfo("approved")).toBe(false);
+    expect(canRequestMoreInfo("rejected")).toBe(false);
   });
 });

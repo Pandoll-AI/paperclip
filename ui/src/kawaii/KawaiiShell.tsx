@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from "react";
-import { NavLink, useLocation } from "@/lib/router";
+import { NavLink, useLocation, useNavigate } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
@@ -25,11 +25,13 @@ import { kawaiiAssetsApi, type KawaiiAssetListOptions } from "../api/kawaiiAsset
 import { SidebarCompanyMenu } from "../components/SidebarCompanyMenu";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
+import { useInboxBadge } from "../hooks/useInboxBadge";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
 import { needsKawaiiPolling } from "./assets";
 import { kawaiiCeoLabel, kawaiiStaffLabel } from "./display";
 import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
+import type { KawaiiSceneId } from "./sceneRegistry";
 import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 import { useKawaiiScene } from "./useKawaiiScene";
 
@@ -79,6 +81,83 @@ const navItems: Array<{ to: string; label: string; icon: LucideIcon; badge?: str
   { to: "/approvals/pending", label: "Approvals", icon: ShieldCheck },
   { to: "/company/settings", label: "Settings", icon: Settings },
 ];
+
+type KawaiiDialogueChoiceAction =
+  | { kind: "navigate"; to: string }
+  | { kind: "dialog"; target: "newAgent" | "newGoal" | "newIssue" | "newProject" };
+
+const dialogueChoiceActions: Partial<Record<KawaiiSceneId, KawaiiDialogueChoiceAction[]>> = {
+  office: [
+    { kind: "navigate", to: "/approvals/pending" },
+    { kind: "navigate", to: "/dashboard/live" },
+    { kind: "navigate", to: "/agents/all" },
+    { kind: "navigate", to: "/costs" },
+  ],
+  staff_room: [
+    { kind: "navigate", to: "/company/settings/access" },
+    { kind: "dialog", target: "newGoal" },
+    { kind: "navigate", to: "/activity" },
+    { kind: "navigate", to: "/org" },
+  ],
+  approval_budget_room: [
+    { kind: "navigate", to: "/approvals/pending" },
+    { kind: "navigate", to: "/approvals/all" },
+    { kind: "navigate", to: "/costs" },
+    { kind: "navigate", to: "/inbox/mine" },
+  ],
+  issue_quest_room: [
+    { kind: "navigate", to: "/issues" },
+    { kind: "navigate", to: "/issues?q=blocked" },
+    { kind: "dialog", target: "newIssue" },
+    { kind: "navigate", to: "/agents/all" },
+  ],
+  goal_strategy_room: [
+    { kind: "navigate", to: "/goals" },
+    { kind: "dialog", target: "newGoal" },
+    { kind: "navigate", to: "/agents/all" },
+    { kind: "navigate", to: "/dashboard" },
+  ],
+  inbox_message_room: [
+    { kind: "navigate", to: "/inbox/mine" },
+    { kind: "navigate", to: "/inbox/unread" },
+    { kind: "navigate", to: "/activity" },
+    { kind: "navigate", to: "/agents/all" },
+  ],
+  project_studio: [
+    { kind: "navigate", to: "/projects" },
+    { kind: "navigate", to: "/workspaces" },
+    { kind: "navigate", to: "/issues?q=blocked" },
+    { kind: "navigate", to: "/agents/all" },
+  ],
+  runtime_room: [
+    { kind: "navigate", to: "/execution-workspaces" },
+    { kind: "navigate", to: "/dashboard/live" },
+    { kind: "navigate", to: "/routines" },
+    { kind: "navigate", to: "/activity" },
+  ],
+  company_hall: [
+    { kind: "navigate", to: "/companies" },
+    { kind: "navigate", to: "/org" },
+    { kind: "navigate", to: "/agents/all" },
+    { kind: "navigate", to: "/activity" },
+  ],
+  tool_atelier: [
+    { kind: "navigate", to: "/skills" },
+    { kind: "navigate", to: "/search" },
+    { kind: "navigate", to: "/company/export" },
+    { kind: "navigate", to: "/company/settings/access" },
+  ],
+  settings_atelier: [
+    { kind: "navigate", to: "/company/settings/access" },
+    { kind: "navigate", to: "/instance/settings/adapters" },
+    { kind: "navigate", to: "/company/settings" },
+    { kind: "navigate", to: "/company/settings/secrets" },
+  ],
+};
+
+export function resolveKawaiiDialogueChoiceAction(sceneId: KawaiiSceneId, index: number) {
+  return dialogueChoiceActions[sceneId]?.[index] ?? null;
+}
 
 function routeInfo(pathname: string) {
   return routeLabels.find((item) => pathname.includes(item.match)) ?? fallbackRouteLabel;
@@ -181,7 +260,7 @@ export function KawaiiSidebar() {
         </div>
       </div>
 
-      <button className="kawaii-sidebar__primary" onClick={() => openNewIssue()}>
+      <button type="button" className="kawaii-sidebar__primary" onClick={() => openNewIssue()}>
         <Sparkles className="h-4 w-4" />
         New Quest
       </button>
@@ -295,10 +374,12 @@ export function KawaiiPageSurface({ children }: { children: ReactNode }) {
 
 export function KawaiiTopBar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const info = routeInfo(location.pathname);
   const Icon = info.icon;
   const { selectedCompanyId } = useCompany();
   const ceoAssetSet = useKawaiiCeoAsset();
+  const inboxBadge = useInboxBadge(selectedCompanyId);
   const { data: session } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
@@ -318,9 +399,13 @@ export function KawaiiTopBar() {
         <div className="kawaii-topbar__company">
           <SidebarCompanyMenu />
         </div>
-        <button aria-label="Notifications">
+        <button
+          type="button"
+          aria-label="Open notifications"
+          onClick={() => navigate("/inbox/mine")}
+        >
           <Bell className="h-4 w-4" />
-          <em>3</em>
+          {inboxBadge.inbox > 0 && <em>{inboxBadge.inbox > 99 ? "99+" : inboxBadge.inbox}</em>}
         </button>
         <div className="kawaii-ceo-chip">
           <div>
@@ -337,6 +422,20 @@ export function KawaiiTopBar() {
 
 export function KawaiiDialogueDock() {
   const scene = useKawaiiScene();
+  const navigate = useNavigate();
+  const { openNewAgent, openNewGoal, openNewIssue, openNewProject } = useDialogActions();
+
+  function runChoice(action: KawaiiDialogueChoiceAction | null) {
+    if (!action) return;
+    if (action.kind === "navigate") {
+      navigate(action.to);
+      return;
+    }
+    if (action.target === "newAgent") openNewAgent();
+    if (action.target === "newGoal") openNewGoal();
+    if (action.target === "newIssue") openNewIssue();
+    if (action.target === "newProject") openNewProject();
+  }
 
   return (
     <section className="kawaii-dialogue-dock" aria-label="Office dialogue">
@@ -346,7 +445,11 @@ export function KawaiiDialogueDock() {
       <p>{scene.text}</p>
       <div className="kawaii-dialogue-dock__choices">
         {scene.choices.map((choice, index) => (
-          <button key={choice}>
+          <button
+            key={choice}
+            type="button"
+            onClick={() => runChoice(resolveKawaiiDialogueChoiceAction(scene.id, index))}
+          >
             <span>{index + 1}</span>
             {choice}
           </button>

@@ -59,7 +59,7 @@ export function KawaiiProjectStudio() {
           <div><Workflow className="h-4 w-4" /><span>Workspaces</span><strong>{workspaceCount}</strong></div>
           <div><CalendarDays className="h-4 w-4" /><span>Active</span><strong>{activeCount}</strong></div>
         </div>
-        <button className="kawaii-scene-band__action" onClick={openNewProject}>
+        <button type="button" className="kawaii-scene-band__action" onClick={openNewProject}>
           <Plus className="h-4 w-4" />
           Add Project
         </button>
