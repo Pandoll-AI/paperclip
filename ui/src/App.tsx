@@ -8,11 +8,9 @@ import { DashboardLive } from "./pages/DashboardLive";
 import { Companies } from "./pages/Companies";
 import { Agents } from "./pages/Agents";
 import { AgentDetail } from "./pages/AgentDetail";
-import { Projects } from "./pages/Projects";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { ProjectWorkspaceDetail } from "./pages/ProjectWorkspaceDetail";
 import { Workspaces } from "./pages/Workspaces";
-import { Issues } from "./pages/Issues";
 import { Search } from "./pages/Search";
 import { IssueDetail } from "./pages/IssueDetail";
 import { IssueChatLongThreadPerf } from "./pages/IssueChatLongThreadPerf";
@@ -50,6 +48,8 @@ import { NewAgent } from "./pages/NewAgent";
 import { KawaiiOfficeDashboard } from "./kawaii/KawaiiOfficeDashboard";
 import { KawaiiStaffRoom } from "./kawaii/KawaiiStaffRoom";
 import { KawaiiApprovalBudgetRoom } from "./kawaii/KawaiiApprovalBudgetRoom";
+import { KawaiiQuestRoom } from "./kawaii/KawaiiQuestRoom";
+import { KawaiiProjectStudio } from "./kawaii/KawaiiProjectStudio";
 import { AuthPage } from "./pages/Auth";
 import { BoardClaimPage } from "./pages/BoardClaim";
 import { CliAuthPage } from "./pages/CliAuth";
@@ -90,7 +90,7 @@ function boardRoutes() {
       <Route path="agents/:agentId" element={<AgentDetail />} />
       <Route path="agents/:agentId/:tab" element={<AgentDetail />} />
       <Route path="agents/:agentId/runs/:runId" element={<AgentDetail />} />
-      <Route path="projects" element={<Projects />} />
+      <Route path="projects" element={<KawaiiProjectStudio />} />
       <Route path="projects/:projectId" element={<ProjectDetail />} />
       <Route path="projects/:projectId/overview" element={<ProjectDetail />} />
       <Route path="projects/:projectId/issues" element={<ProjectDetail />} />
@@ -100,7 +100,7 @@ function boardRoutes() {
       <Route path="projects/:projectId/configuration" element={<ProjectDetail />} />
       <Route path="projects/:projectId/budget" element={<ProjectDetail />} />
       <Route path="workspaces" element={<Workspaces />} />
-      <Route path="issues" element={<Issues />} />
+      <Route path="issues" element={<KawaiiQuestRoom />} />
       <Route path="search" element={<Search />} />
       <Route path="issues/all" element={<Navigate to="/issues" replace />} />
       <Route path="issues/active" element={<Navigate to="/issues" replace />} />

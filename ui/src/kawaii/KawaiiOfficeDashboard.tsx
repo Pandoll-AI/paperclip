@@ -14,8 +14,8 @@ import { queryKeys } from "../lib/queryKeys";
 import { formatCents } from "../lib/utils";
 import { KawaiiPortrait, KawaiiMiniChart } from "./KawaiiVisuals";
 import { needsKawaiiPolling } from "./assets";
-import { kawaiiGeneratedAssets } from "./generatedAssets";
 import { kawaiiFirstName, kawaiiStaffLabel, kawaiiStaffTitle } from "./display";
+import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 
 function roleLabel(agent: Agent) {
   return kawaiiStaffTitle(agent);
@@ -32,6 +32,7 @@ function assetMap(sets: KawaiiAssetSet[] | undefined) {
 export function KawaiiOfficeDashboard() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { backgroundImage } = useKawaiiSceneAssets();
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Office" }]);
@@ -101,7 +102,7 @@ export function KawaiiOfficeDashboard() {
 
       <section className="kawaii-office-grid">
         <div className="kawaii-office-hero">
-          <img src={kawaiiGeneratedAssets.officeBackground} alt="" className="kawaii-office-hero__bg" />
+          <img src={backgroundImage} alt="" className="kawaii-office-hero__bg" />
           <div className="kawaii-office-hero__window" />
           <div className="kawaii-office-hero__desk" />
           <div className="kawaii-office-hero__portrait">

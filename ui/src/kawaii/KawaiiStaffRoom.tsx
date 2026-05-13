@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Shield, Target, Users } from "lucide-react";
 import type { Agent, KawaiiAssetSet } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
+import { issuesApi } from "../api/issues";
 import { kawaiiAssetsApi } from "../api/kawaiiAssets";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { queryKeys } from "../lib/queryKeys";
-import { formatCents } from "../lib/utils";
+import { formatCents, relativeTime } from "../lib/utils";
 import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
 import { KawaiiPortrait } from "./KawaiiVisuals";
 import { needsKawaiiPolling } from "./assets";
 import { kawaiiCeoLabel, kawaiiFirstName, kawaiiStaffLabel, kawaiiStaffTitle } from "./display";
+import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 
 export type KawaiiStaffFilterTab = "all" | "active" | "paused" | "error";
 
@@ -50,10 +52,15 @@ function staffTitleForFilter(tab: KawaiiStaffFilterTab) {
   return "All Agents";
 }
 
+function lastHeartbeatLabel(agent: Agent | null) {
+  return agent?.lastHeartbeatAt ? relativeTime(agent.lastHeartbeatAt) : "No heartbeat";
+}
+
 export function KawaiiStaffRoom() {
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { backgroundImage } = useKawaiiSceneAssets();
   const location = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -86,6 +93,23 @@ export function KawaiiStaffRoom() {
   );
   const selected = visibleAgents.find((agent) => agent.id === selectedId) ?? visibleAgents[0] ?? null;
   const selectedIndex = selected ? visibleAgents.findIndex((agent) => agent.id === selected.id) : -1;
+  const selectedManager = selected?.reportsTo
+    ? (agents ?? []).find((agent) => agent.id === selected.reportsTo) ?? null
+    : null;
+  const directReportCount = selected
+    ? (agents ?? []).filter((agent) => agent.reportsTo === selected.id && agent.status !== "terminated").length
+    : 0;
+
+  const { data: assignedIssues } = useQuery({
+    queryKey: selectedCompanyId && selected
+      ? [...queryKeys.issues.list(selectedCompanyId), "assignee", selected.id, "kawaii-staff-room"]
+      : ["issues", "__none__", "assignee", "__none__", "kawaii-staff-room"],
+    queryFn: () => issuesApi.list(selectedCompanyId!, {
+      assigneeAgentId: selected!.id,
+      limit: 5,
+    }),
+    enabled: !!selectedCompanyId && !!selected,
+  });
 
   useEffect(() => {
     if (visibleAgents.length === 0) {
@@ -122,7 +146,10 @@ export function KawaiiStaffRoom() {
         ))}
       </section>
 
-      <section className="kawaii-staff-stage">
+      <section
+        className="kawaii-staff-stage"
+        style={{ "--kawaii-scene-background": `url("${backgroundImage}")` } as CSSProperties}
+      >
         {selected ? (
           <>
             <div className="kawaii-staff-stage__portrait">
@@ -136,8 +163,9 @@ export function KawaiiStaffRoom() {
               <h2>{kawaiiStaffTitle(selected)}, {kawaiiFirstName(selected.name)}</h2>
               <p>{selected.capabilities || "I build, architect, and ship."}</p>
               <div className="kawaii-list">
-                <div><span>Trust Level</span><strong>78 / 100</strong></div>
-                <div><span>Today</span><strong>{formatCents(selected.spentMonthlyCents ?? 0)}</strong></div>
+                <div><span>Monthly Budget</span><strong>{formatCents(selected.budgetMonthlyCents ?? 0)}</strong></div>
+                <div><span>Monthly Spend</span><strong>{formatCents(selected.spentMonthlyCents ?? 0)}</strong></div>
+                <div><span>Last Heartbeat</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
               </div>
             </div>
           </>
@@ -154,32 +182,38 @@ export function KawaiiStaffRoom() {
             <div><span>Name</span><strong>{selected ? kawaiiFirstName(selected.name) : "-"}</strong></div>
             <div><span>Role</span><strong>{selected ? kawaiiStaffTitle(selected) : "-"}</strong></div>
             <div><span>Status</span><strong>{selected?.status ?? "-"}</strong></div>
-            <div><span>Work Style</span><strong>Builder</strong></div>
+            <div><span>Adapter</span><strong>{selected?.adapterType ?? "-"}</strong></div>
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <Target className="h-5 w-5 text-green-500" />
-          <strong>Skills</strong>
+          <strong>Operating Signals</strong>
           <div className="kawaii-list">
-            <div><span>Software Architecture</span><strong>90</strong></div>
-            <div><span>Full Stack Development</span><strong>88</strong></div>
-            <div><span>Problem Solving</span><strong>85</strong></div>
+            <div><span>Monthly Spend</span><strong>{selected ? formatCents(selected.spentMonthlyCents ?? 0) : "-"}</strong></div>
+            <div><span>Budget Limit</span><strong>{selected ? formatCents(selected.budgetMonthlyCents ?? 0) : "-"}</strong></div>
+            <div><span>Last Heartbeat</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
+            <div><span>Pause Reason</span><strong>{selected?.pauseReason ?? "None"}</strong></div>
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <FileText className="h-5 w-5 text-coral-500" />
-          <strong>Current Goals</strong>
+          <strong>Assigned Quests</strong>
           <div className="kawaii-list">
-            <div><span>Complete MVP scaffolding</span><strong>Active</strong></div>
-            <div><span>Implement onboarding checklist UI</span><strong>In Progress</strong></div>
+            {(assignedIssues ?? []).slice(0, 4).map((issue) => (
+              <div key={issue.id}>
+                <span>{issue.identifier ?? issue.title}</span>
+                <strong>{issue.status.replace(/_/g, " ")}</strong>
+              </div>
+            ))}
+            {(assignedIssues ?? []).length === 0 && <div><span>No assigned quests</span><strong>Clear</strong></div>}
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <Users className="h-5 w-5 text-purple-500" />
           <strong>Organization Chart</strong>
           <div className="kawaii-list">
-            <div><span>Reports to</span><strong>{kawaiiCeoLabel(session)}</strong></div>
-            <div><span>Direct reports</span><strong>2</strong></div>
+            <div><span>Reports to</span><strong>{selectedManager ? kawaiiStaffLabel(selectedManager) : kawaiiCeoLabel(session)}</strong></div>
+            <div><span>Direct reports</span><strong>{directReportCount}</strong></div>
           </div>
         </div>
       </section>

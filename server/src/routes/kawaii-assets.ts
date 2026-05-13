@@ -46,7 +46,20 @@ export function kawaiiAssetRoutes(
     assertCompanyAccess(req, companyId);
     const setup = await options.service.enqueueCeoSetup(companyId);
     const scenes = await Promise.all(
-      ["office", "staff_room", "approval_budget_room", "issue_quest_room", "onboarding_throne_room"]
+      [
+        "office",
+        "staff_room",
+        "approval_budget_room",
+        "issue_quest_room",
+        "goal_strategy_room",
+        "inbox_message_room",
+        "settings_atelier",
+        "project_studio",
+        "runtime_room",
+        "company_hall",
+        "tool_atelier",
+        "onboarding_throne_room",
+      ]
         .map((sceneId) => options.service.enqueueSceneBackground(companyId, sceneId)),
     );
     res.status(202).json({ setup, scenes });

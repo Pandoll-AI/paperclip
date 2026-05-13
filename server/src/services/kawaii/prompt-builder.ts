@@ -33,6 +33,10 @@ export type KawaiiSceneId =
   | "goal_strategy_room"
   | "inbox_message_room"
   | "settings_atelier"
+  | "project_studio"
+  | "runtime_room"
+  | "company_hall"
+  | "tool_atelier"
   | "onboarding_throne_room";
 
 const baseNegative = [
@@ -256,6 +260,10 @@ const sceneLabels: Record<KawaiiSceneId, string> = {
   goal_strategy_room: "strategy room for company goals and roadmap planning",
   inbox_message_room: "message room with letters, notifications, and soft lamps",
   settings_atelier: "settings atelier with tools, shelves, and calm admin atmosphere",
+  project_studio: "project studio with work maps, desks, and project boards",
+  runtime_room: "runtime room with safe server consoles, logs, and soft desk lamps",
+  company_hall: "company hall with org charts, paper records, and welcoming office light",
+  tool_atelier: "tool atelier with shelves, adapters, plugin tools, and tidy records",
   onboarding_throne_room: "CEO setup throne-office with royal stationery and dotted faceless user outline",
 };
 

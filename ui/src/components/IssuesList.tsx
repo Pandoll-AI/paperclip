@@ -362,6 +362,8 @@ interface IssuesListProps {
   searchWithinLoadedIssues?: boolean;
   baseCreateIssueDefaults?: Record<string, unknown>;
   createIssueLabel?: string;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
   defaultSortField?: IssueSortField;
   showProgressSummary?: boolean;
   /**
@@ -383,9 +385,11 @@ interface IssuesListProps {
 function IssueSearchInput({
   value,
   onDebouncedChange,
+  placeholder = "Search issues...",
 }: {
   value: string;
   onDebouncedChange?: (search: string) => void;
+  placeholder?: string;
 }) {
   const [draftValue, setDraftValue] = useState(value);
   const lastCommittedValueRef = useRef(value);
@@ -433,9 +437,9 @@ function IssueSearchInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder="Search issues..."
+        placeholder={placeholder}
         className="pl-7 text-xs sm:text-sm"
-        aria-label="Search issues"
+        aria-label={placeholder}
         data-page-search-target="true"
       />
     </div>
@@ -574,6 +578,8 @@ export function IssuesList({
   searchWithinLoadedIssues = false,
   baseCreateIssueDefaults,
   createIssueLabel,
+  searchPlaceholder,
+  emptyMessage,
   defaultSortField,
   showProgressSummary = false,
   parentIssueIdForCostSummary,
@@ -1285,6 +1291,7 @@ export function IssuesList({
           </Button>
           <IssueSearchInput
             value={issueSearch}
+            placeholder={searchPlaceholder}
             onDebouncedChange={(nextSearch) => {
               setIssueSearch(nextSearch);
               onSearchChange?.(nextSearch);
@@ -1443,7 +1450,7 @@ export function IssuesList({
       {!isLoading && filtered.length === 0 && viewState.viewMode === "list" && (
         <EmptyState
           icon={CircleDot}
-          message="No issues match the current filters or search."
+          message={emptyMessage ?? "No issues match the current filters or search."}
           action={createActionLabel}
           onAction={() => openCreateIssueDialog()}
         />

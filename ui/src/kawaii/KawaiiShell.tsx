@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -17,15 +17,19 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import type { KawaiiAssetSet } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { approvalsApi } from "../api/approvals";
 import { authApi } from "../api/auth";
+import { kawaiiAssetsApi } from "../api/kawaiiAssets";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
+import { needsKawaiiPolling } from "./assets";
 import { kawaiiCeoLabel, kawaiiStaffLabel } from "./display";
 import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
+import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 import { useKawaiiScene } from "./useKawaiiScene";
 
 const routeLabels: Array<{ match: string; title: string; subtitle: string; icon: LucideIcon }> = [
@@ -84,6 +88,29 @@ function companyPath(prefix: string | null | undefined, to: string) {
   return `/${prefix}${to}`;
 }
 
+function visualMap(sets: KawaiiAssetSet[] | undefined) {
+  const map = new Map<string, KawaiiAssetSet>();
+  for (const set of sets ?? []) {
+    if (set.ownerType === "agent") map.set(set.ownerId, set);
+  }
+  return map;
+}
+
+function usePendingApprovalsCount(companyId: string | null | undefined) {
+  const { data: approvals } = useQuery({
+    queryKey: queryKeys.approvals.list(companyId ?? "__none__"),
+    queryFn: () => approvalsApi.list(companyId!),
+    enabled: !!companyId,
+    refetchInterval: 15_000,
+  });
+  return (approvals ?? []).filter((item) => item.status === "pending" || item.status === "revision_requested").length;
+}
+
+function navBadge(label: string, pendingApprovals: number, fallback?: string) {
+  if (label === "Approvals" && pendingApprovals > 0) return String(pendingApprovals);
+  return fallback;
+}
+
 export function KawaiiSidebar() {
   const { selectedCompany, selectedCompanyId } = useCompany();
   const { openNewIssue } = useDialogActions();
@@ -98,13 +125,14 @@ export function KawaiiSidebar() {
     queryFn: () => agentsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
-  const { data: approvals } = useQuery({
-    queryKey: queryKeys.approvals.list(selectedCompanyId ?? "__none__"),
-    queryFn: () => approvalsApi.list(selectedCompanyId!),
+  const { data: visualSets } = useQuery({
+    queryKey: queryKeys.kawaiiAssets.list(selectedCompanyId ?? "__none__", { purpose: "staff_character" }),
+    queryFn: () => kawaiiAssetsApi.list(selectedCompanyId!, { purpose: "staff_character" }),
     enabled: !!selectedCompanyId,
-    refetchInterval: 15_000,
+    refetchInterval: (query) => needsKawaiiPolling(query.state.data) ? 4_000 : false,
   });
-  const pendingApprovals = (approvals ?? []).filter((item) => item.status === "pending" || item.status === "revision_requested").length;
+  const visuals = useMemo(() => visualMap(visualSets), [visualSets]);
+  const pendingApprovals = usePendingApprovalsCount(selectedCompanyId);
 
   return (
     <aside className="kawaii-sidebar">
@@ -124,7 +152,7 @@ export function KawaiiSidebar() {
       <nav className="kawaii-sidebar__nav">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const badge = item.label === "Approvals" && pendingApprovals > 0 ? String(pendingApprovals) : item.badge;
+          const badge = navBadge(item.label, pendingApprovals, item.badge);
           return (
             <NavLink
               key={item.to}
@@ -152,7 +180,12 @@ export function KawaiiSidebar() {
         <p>Staff</p>
         {(agents ?? []).slice(0, 5).map((agent, index) => (
           <NavLink key={agent.id} to={companyPath(prefix, `/agents/${agent.id}/dashboard`)}>
-            <KawaiiAgentAvatar agent={agent} characterIndex={index} className="kawaii-sidebar__mini-avatar" />
+            <KawaiiAgentAvatar
+              agent={agent}
+              assetSet={visuals.get(agent.id)}
+              characterIndex={index}
+              className="kawaii-sidebar__mini-avatar"
+            />
             <span>{kawaiiStaffLabel(agent)}</span>
           </NavLink>
         ))}
@@ -169,8 +202,36 @@ export function KawaiiSidebar() {
   );
 }
 
+export function KawaiiMobileNav() {
+  const { selectedCompany, selectedCompanyId } = useCompany();
+  const prefix = selectedCompany?.issuePrefix ?? null;
+  const pendingApprovals = usePendingApprovalsCount(selectedCompanyId);
+
+  return (
+    <nav className="kawaii-mobile-nav" aria-label="Kawaii mobile navigation">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const badge = navBadge(item.label, pendingApprovals, item.badge);
+        return (
+          <NavLink
+            key={item.to}
+            to={companyPath(prefix, item.to)}
+            className={({ isActive }) => cn("kawaii-mobile-nav__item", isActive && "is-active")}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+            {badge && <em>{badge}</em>}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
 const nativeKawaiiRoutePatterns = [
   /^\/(?:[^/]+\/)?dashboard\/?$/,
+  /^\/(?:[^/]+\/)?issues\/?$/,
+  /^\/(?:[^/]+\/)?projects\/?$/,
   /^\/(?:[^/]+\/)?agents\/(?:all|active|paused|error)\/?$/,
   /^\/(?:[^/]+\/)?approvals\/(?:pending|all)\/?$/,
 ];
@@ -181,13 +242,15 @@ export function usesNativeKawaiiBody(pathname: string) {
 
 export function KawaiiPageSurface({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { backgroundImage } = useKawaiiSceneAssets();
+  const style = { "--kawaii-scene-background": `url("${backgroundImage}")` } as CSSProperties;
 
   if (usesNativeKawaiiBody(location.pathname)) {
     return <>{children}</>;
   }
 
   return (
-    <div className="kawaii-legacy-frame">
+    <div className="kawaii-legacy-frame" style={style}>
       {children}
     </div>
   );

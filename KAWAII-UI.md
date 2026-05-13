@@ -81,9 +81,11 @@ Purpose:
 Display rules:
 - Staff names use `kawaiiStaffLabel(agent)`.
 - Staff avatars use `KawaiiAgentAvatar`.
+- Generated Staff asset sets are preferred in both the full Staff Room and the sidebar preview.
 - The CEO owner card sits outside the Staff roster and uses the faceless user outline.
 - The Staff preview should show a small, scannable roster, not full detail.
 - Active route styling should be obvious without breaking the soft visual tone.
+- Mobile company pages must render the shared kawaii nav rail when the desktop sidebar is hidden.
 
 ### Topbar
 
@@ -113,6 +115,8 @@ Display rules:
 Native kawaii pages:
 - Dashboard: `KawaiiOfficeDashboard`
 - Staff: `KawaiiStaffRoom`
+- Quests: `KawaiiQuestRoom`
+- Projects: `KawaiiProjectStudio`
 - Approvals and budget room: `KawaiiApprovalBudgetRoom`
 
 Shell plus legacy body pages:
@@ -186,6 +190,9 @@ Purpose:
 Display rules:
 - Dialogue-heavy pages should have a scene background candidate.
 - Backgrounds must support readable UI overlays.
+- Generated scene background assets should be selected by `ownerType=scene`, `ownerId={scene.id}`, and `purpose=scene_background`.
+- If generated scene assets are missing, pending, or failed, the UI must fall back to bundled local scene art.
+- Do not start image generation during render. Use setup or explicit regenerate actions to enqueue jobs.
 - Scenes should map to the user's current operational context:
   - Office for dashboard.
   - Staff Room for agents.
@@ -208,7 +215,17 @@ Rules:
 - `.kawaii-main` owns the full remaining viewport.
 - `.kawaii-main__scroll` is the only vertical scroll container for page content.
 - The bottom dialogue dock is positioned inside the kawaii shell and should not create body scroll.
+- The mobile kawaii nav rail is part of the shell and must not create body-level scroll.
 - Mobile layouts may stack the sidebar and content, but body-level scroll is still not allowed for kawaii shell pages.
+
+## Data Integrity
+
+Kawaii presentation must not fabricate operational metrics.
+
+Rules:
+- Dashboard, Staff, Quest, Project, Approval, and Budget numbers must come from API data or render an explicit empty state.
+- Staff Room must not hardcode trust, skill, success, direct report, or goal values.
+- Generated art loading may use fallback images, but operational state must not use fallback fake values.
 
 ## Route Coverage Checklist
 

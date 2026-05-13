@@ -41,7 +41,7 @@ import { scheduleMainContentFocus } from "../lib/main-content-focus";
 import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
 import { PluginSlotMount, resolveRouteSidebarSlot, usePluginSlots } from "../plugins/slots";
-import { KawaiiDialogueDock, KawaiiPageSurface, KawaiiSidebar, KawaiiTopBar } from "../kawaii/KawaiiShell";
+import { KawaiiDialogueDock, KawaiiMobileNav, KawaiiPageSurface, KawaiiSidebar, KawaiiTopBar } from "../kawaii/KawaiiShell";
 
 const INSTANCE_SETTINGS_MEMORY_KEY = "paperclip.lastInstanceSettingsPath";
 
@@ -353,6 +353,7 @@ export function Layout() {
             <KawaiiSidebar />
             <div className="kawaii-main">
               <KawaiiTopBar />
+              <KawaiiMobileNav />
               <main
                 id="main-content"
                 ref={mainContentRef}

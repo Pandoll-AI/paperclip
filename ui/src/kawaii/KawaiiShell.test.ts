@@ -5,6 +5,8 @@ describe("usesNativeKawaiiBody", () => {
   it("only treats top-level native kawaii routes as native bodies", () => {
     expect(usesNativeKawaiiBody("/dashboard")).toBe(true);
     expect(usesNativeKawaiiBody("/KAW/dashboard")).toBe(true);
+    expect(usesNativeKawaiiBody("/KAW/issues")).toBe(true);
+    expect(usesNativeKawaiiBody("/KAW/projects")).toBe(true);
     expect(usesNativeKawaiiBody("/KAW/agents/all")).toBe(true);
     expect(usesNativeKawaiiBody("/KAW/agents/active")).toBe(true);
     expect(usesNativeKawaiiBody("/KAW/agents/paused")).toBe(true);
