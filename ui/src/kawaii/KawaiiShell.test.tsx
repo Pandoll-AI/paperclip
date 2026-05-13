@@ -4,7 +4,8 @@ import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
-import { KawaiiDialogueDock, resolveKawaiiDialogueChoiceAction } from "./KawaiiShell";
+import { KawaiiDialogueDock, kawaiiNavItems, resolveKawaiiDialogueChoiceAction } from "./KawaiiShell";
+import { kawaiiScenes } from "./sceneRegistry";
 
 const navigateMock = vi.hoisted(() => vi.fn());
 const openNewAgentMock = vi.hoisted(() => vi.fn());
@@ -37,6 +38,41 @@ vi.mock("../context/DialogContext", () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+function isKnownKawaiiMenuRoute(to: string) {
+  const [pathname] = to.split(/[?#]/);
+  const exactRoutes = new Set([
+    "/dashboard",
+    "/dashboard/live",
+    "/issues",
+    "/projects",
+    "/workspaces",
+    "/agents/all",
+    "/agents/active",
+    "/agents/paused",
+    "/agents/error",
+    "/goals",
+    "/inbox",
+    "/inbox/mine",
+    "/inbox/unread",
+    "/costs",
+    "/activity",
+    "/approvals/pending",
+    "/approvals/all",
+    "/company/settings",
+    "/company/settings/access",
+    "/company/settings/secrets",
+    "/company/export",
+    "/companies",
+    "/org",
+    "/skills",
+    "/search",
+    "/routines",
+    "/instance/settings/adapters",
+  ]);
+
+  return exactRoutes.has(pathname ?? "") || /^\/agents\/[^/]+\/dashboard$/.test(pathname ?? "");
+}
+
 describe("KawaiiDialogueDock", () => {
   it("maps visual-novel choices to concrete route or dialog actions", () => {
     expect(resolveKawaiiDialogueChoiceAction("office", 0)).toEqual({ kind: "navigate", to: "/approvals/pending" });
@@ -50,6 +86,28 @@ describe("KawaiiDialogueDock", () => {
       kind: "navigate",
       to: "/company/settings/secrets",
     });
+  });
+
+  it("maps every kawaii menu target to a known route or dialog", () => {
+    const unknownRoutes = kawaiiNavItems
+      .map((item) => item.to)
+      .filter((to) => !isKnownKawaiiMenuRoute(to));
+    const missingChoiceActions: string[] = [];
+    const unknownChoiceRoutes: string[] = [];
+    for (const scene of kawaiiScenes) {
+      scene.choices.forEach((_choice, index) => {
+        const action = resolveKawaiiDialogueChoiceAction(scene.id, index);
+        if (!action) {
+          missingChoiceActions.push(`${scene.id}:${index}`);
+        } else if (action.kind === "navigate" && !isKnownKawaiiMenuRoute(action.to)) {
+          unknownChoiceRoutes.push(`${scene.id}:${index}:${action.to}`);
+        }
+      });
+    }
+
+    expect(unknownRoutes).toEqual([]);
+    expect(missingChoiceActions).toEqual([]);
+    expect(unknownChoiceRoutes).toEqual([]);
   });
 
   it("renders the lower-right dialogue cut-in instead of the stage scene composite", async () => {

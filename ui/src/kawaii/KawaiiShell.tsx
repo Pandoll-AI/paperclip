@@ -70,7 +70,7 @@ const fallbackRouteLabel = {
   icon: Home,
 } satisfies { match: string; title: string; subtitle: string; icon: LucideIcon };
 
-const navItems: Array<{ to: string; label: string; icon: LucideIcon; badge?: string }> = [
+export const kawaiiNavItems: Array<{ to: string; label: string; icon: LucideIcon; badge?: string }> = [
   { to: "/dashboard", label: "Office", icon: Home },
   { to: "/issues", label: "Quests", icon: ClipboardList },
   { to: "/agents/all", label: "Staff", icon: Users },
@@ -130,7 +130,7 @@ const dialogueChoiceActions: Partial<Record<KawaiiSceneId, KawaiiDialogueChoiceA
     { kind: "navigate", to: "/agents/all" },
   ],
   runtime_room: [
-    { kind: "navigate", to: "/execution-workspaces" },
+    { kind: "navigate", to: "/dashboard/live" },
     { kind: "navigate", to: "/dashboard/live" },
     { kind: "navigate", to: "/routines" },
     { kind: "navigate", to: "/activity" },
@@ -266,7 +266,7 @@ export function KawaiiSidebar() {
       </button>
 
       <nav className="kawaii-sidebar__nav">
-        {navItems.map((item) => {
+        {kawaiiNavItems.map((item) => {
           const Icon = item.icon;
           const badge = navBadge(item.label, pendingApprovals, item.badge);
           return (
@@ -325,7 +325,7 @@ export function KawaiiMobileNav() {
 
   return (
     <nav className="kawaii-mobile-nav" aria-label="Kawaii mobile navigation">
-      {navItems.map((item) => {
+      {kawaiiNavItems.map((item) => {
         const Icon = item.icon;
         const badge = navBadge(item.label, pendingApprovals, item.badge);
         return (

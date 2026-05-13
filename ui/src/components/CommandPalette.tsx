@@ -45,7 +45,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { selectedCompanyId } = useCompany();
-  const { openNewIssue, openNewAgent } = useDialogActions();
+  const { openNewIssue, openNewAgent, openNewProject } = useDialogActions();
   const { isMobile, setSidebarOpen } = useSidebar();
   const searchQuery = query.trim();
 
@@ -186,7 +186,12 @@ export function CommandPalette() {
             <Plus className="mr-2 h-4 w-4" />
             Create new agent
           </CommandItem>
-          <CommandItem onSelect={() => go("/projects")}>
+          <CommandItem
+            onSelect={() => {
+              setOpen(false);
+              openNewProject();
+            }}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create new project
           </CommandItem>

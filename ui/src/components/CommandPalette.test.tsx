@@ -14,6 +14,7 @@ const companyState = vi.hoisted(() => ({
 const dialogState = vi.hoisted(() => ({
   openNewIssue: vi.fn(),
   openNewAgent: vi.fn(),
+  openNewProject: vi.fn(),
 }));
 
 const sidebarState = vi.hoisted(() => ({
@@ -162,6 +163,7 @@ describe("CommandPalette", () => {
     document.body.appendChild(container);
     dialogState.openNewIssue.mockReset();
     dialogState.openNewAgent.mockReset();
+    dialogState.openNewProject.mockReset();
     sidebarState.setSidebarOpen.mockReset();
     mockIssuesApi.list.mockReset();
     mockAgentsApi.list.mockReset();
@@ -271,6 +273,34 @@ describe("CommandPalette", () => {
     await waitForAssertion(() => {
       expect(navigateState.navigate).toHaveBeenCalledWith("/search?q=deflake");
     });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("opens the new project dialog from the create project command", async () => {
+    const { root } = renderWithQueryClient(<CommandPalette />, container);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }));
+    });
+
+    await waitForAssertion(() => {
+      expect(container.textContent).toContain("Create new project");
+    });
+
+    const createProjectButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Create new project"),
+    );
+    expect(createProjectButton).not.toBeUndefined();
+
+    act(() => {
+      createProjectButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(dialogState.openNewProject).toHaveBeenCalledTimes(1);
+    expect(navigateState.navigate).not.toHaveBeenCalledWith("/projects");
 
     act(() => {
       root.unmount();
