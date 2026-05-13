@@ -156,7 +156,7 @@ export function KawaiiQuestRoom() {
   });
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={CircleDot} message="Select a company to view issues." />;
+    return <EmptyState icon={CircleDot} message="회사를 선택하면 Quest를 볼 수 있습니다." />;
   }
 
   const style = { "--kawaii-scene-background": `url("${backgroundImage}")` } as CSSProperties;
@@ -169,7 +169,7 @@ export function KawaiiQuestRoom() {
       <section className="kawaii-scene-band" style={style}>
         <div className="kawaii-scene-band__copy">
           <span>Quest Room</span>
-          <h2>{selectedCompany?.name ?? "Paperclip"} quests</h2>
+          <h2>{selectedCompany?.name ?? "Paperclip"} Quest</h2>
           <p>진행 중인 업무, 검토 요청, 막힌 항목을 한 장면에서 정리합니다.</p>
         </div>
         <div className="kawaii-scene-band__stats">
@@ -179,7 +179,7 @@ export function KawaiiQuestRoom() {
         </div>
         <button type="button" className="kawaii-scene-band__action" onClick={() => openNewIssue()}>
           <Plus className="h-4 w-4" />
-          New Quest
+          새 Quest
         </button>
       </section>
 
@@ -199,8 +199,8 @@ export function KawaiiQuestRoom() {
           initialSearch={syncedSearch}
           onSearchChange={handleSearchChange}
           createIssueLabel="Quest"
-          searchPlaceholder="Search quests..."
-          emptyMessage="No quests match the current filters or search."
+          searchPlaceholder="Quest 검색..."
+          emptyMessage="현재 필터나 검색에 맞는 Quest가 없습니다."
           enableRoutineVisibilityFilter
           hasMoreIssues={hasMoreServerIssues}
           onLoadMoreIssues={loadMoreServerIssues}

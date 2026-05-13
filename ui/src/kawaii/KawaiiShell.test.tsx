@@ -3,8 +3,9 @@
 import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { KawaiiDialogueDock, kawaiiNavItems, resolveKawaiiDialogueChoiceAction } from "./KawaiiShell";
+import { KawaiiDialogueDock, KawaiiTopBar, kawaiiNavItems, resolveKawaiiDialogueChoiceAction } from "./KawaiiShell";
 import { kawaiiScenes } from "./sceneRegistry";
 
 const navigateMock = vi.hoisted(() => vi.fn());
@@ -35,8 +36,39 @@ vi.mock("../context/DialogContext", () => ({
   }),
 }));
 
+vi.mock("../components/SidebarCompanyMenu", () => ({
+  SidebarCompanyMenu: () => <button type="button">Company</button>,
+}));
+
+vi.mock("../api/auth", () => ({
+  authApi: {
+    getSession: vi.fn().mockResolvedValue({ user: { id: "user-1", name: "SJ", email: "sj@example.com" } }),
+  },
+}));
+
+vi.mock("../hooks/useInboxBadge", () => ({
+  useInboxBadge: () => ({ inbox: 3, failedRuns: 0 }),
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+function renderWithQueryClient(node: ReactNode, container: HTMLElement) {
+  const root = createRoot(container);
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
+  root.render(
+    <QueryClientProvider client={queryClient}>
+      {node}
+    </QueryClientProvider>,
+  );
+
+  return { root, queryClient };
+}
 
 function isKnownKawaiiMenuRoute(to: string) {
   const [pathname] = to.split(/[?#]/);
@@ -149,6 +181,35 @@ describe("KawaiiDialogueDock", () => {
 
     await act(async () => {
       root.unmount();
+    });
+    container.remove();
+  });
+
+  it("opens inbox notifications from the topbar alarm", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    let root: ReturnType<typeof createRoot>;
+    await act(async () => {
+      root = renderWithQueryClient(<KawaiiTopBar />, container).root;
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("CEO, SJ");
+    const alarm = container.querySelector('button[aria-label="알림 3개 열기"]');
+    expect(alarm).not.toBeNull();
+
+    await act(async () => {
+      alarm?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(navigateMock).toHaveBeenCalledWith("/inbox/mine");
+
+    await act(async () => {
+      root!.unmount();
     });
     container.remove();
   });

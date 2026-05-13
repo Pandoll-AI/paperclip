@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Shield, Target, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Shield, Target, Users } from "lucide-react";
 import type { Agent, KawaiiAssetSet } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
@@ -15,7 +15,8 @@ import { formatCents, relativeTime } from "../lib/utils";
 import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
 import { KawaiiPortrait } from "./KawaiiVisuals";
 import { needsKawaiiPolling } from "./assets";
-import { kawaiiCeoLabel, kawaiiFirstName, kawaiiStaffLabel, kawaiiStaffTitle } from "./display";
+import { characterForAgent } from "./characterLibrary";
+import { kawaiiCeoLabel, kawaiiStaffDisplayParts, kawaiiStaffTitle } from "./display";
 import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 
 export type KawaiiStaffFilterTab = "all" | "active" | "paused" | "error";
@@ -46,14 +47,19 @@ export function matchesKawaiiStaffFilter(agent: Pick<Agent, "status">, tab: Kawa
 }
 
 function staffTitleForFilter(tab: KawaiiStaffFilterTab) {
-  if (tab === "active") return "Active Staff";
-  if (tab === "paused") return "Paused Staff";
-  if (tab === "error") return "Needs Attention";
-  return "All Agents";
+  if (tab === "active") return "활성 Staff";
+  if (tab === "paused") return "일시정지 Staff";
+  if (tab === "error") return "확인 필요";
+  return "전체 Staff";
 }
 
 function lastHeartbeatLabel(agent: Agent | null) {
-  return agent?.lastHeartbeatAt ? relativeTime(agent.lastHeartbeatAt) : "No heartbeat";
+  return agent?.lastHeartbeatAt ? relativeTime(agent.lastHeartbeatAt) : "신호 없음";
+}
+
+function displayParts(agent: Agent | null, index?: number) {
+  if (!agent) return null;
+  return kawaiiStaffDisplayParts(agent, characterForAgent(agent, index).name);
 }
 
 export function KawaiiStaffRoom() {
@@ -93,9 +99,12 @@ export function KawaiiStaffRoom() {
   );
   const selected = visibleAgents.find((agent) => agent.id === selectedId) ?? visibleAgents[0] ?? null;
   const selectedIndex = selected ? visibleAgents.findIndex((agent) => agent.id === selected.id) : -1;
+  const selectedDisplay = displayParts(selected, selectedIndex >= 0 ? selectedIndex : undefined);
   const selectedManager = selected?.reportsTo
     ? (agents ?? []).find((agent) => agent.id === selected.reportsTo) ?? null
     : null;
+  const selectedManagerIndex = selectedManager ? (agents ?? []).findIndex((agent) => agent.id === selectedManager.id) : -1;
+  const selectedManagerDisplay = displayParts(selectedManager, selectedManagerIndex >= 0 ? selectedManagerIndex : undefined);
   const directReportCount = selected
     ? (agents ?? []).filter((agent) => agent.reportsTo === selected.id && agent.status !== "terminated").length
     : 0;
@@ -121,6 +130,13 @@ export function KawaiiStaffRoom() {
     }
   }, [visibleAgents, selectedId]);
 
+  function selectRelativeStaff(delta: number) {
+    if (visibleAgents.length <= 1) return;
+    const currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    const nextIndex = (currentIndex + delta + visibleAgents.length) % visibleAgents.length;
+    setSelectedId(visibleAgents[nextIndex]!.id);
+  }
+
   return (
     <div className="kawaii-staff-room">
       <section className="kawaii-card kawaii-roster">
@@ -129,22 +145,25 @@ export function KawaiiStaffRoom() {
           <p>{visibleAgents.length} / {agents?.length ?? 0}</p>
         </div>
         <button type="button" className="kawaii-sidebar__primary" onClick={openNewAgent}>
-          + Hire Agent
+          + 새 Staff
         </button>
-        {visibleAgents.map((agent, index) => (
-          <button
-            type="button"
-            key={agent.id}
-            className={selected?.id === agent.id ? "kawaii-roster__item is-active" : "kawaii-roster__item"}
-            onClick={() => setSelectedId(agent.id)}
-          >
-            <KawaiiAgentAvatar agent={agent} assetSet={visuals.get(agent.id)} characterIndex={index} />
-            <div>
-              <strong>{kawaiiStaffLabel(agent)}</strong>
-              <span>{agent.status}</span>
-            </div>
-          </button>
-        ))}
+        {visibleAgents.map((agent, index) => {
+          const staff = displayParts(agent, index)!;
+          return (
+            <button
+              type="button"
+              key={agent.id}
+              className={selected?.id === agent.id ? "kawaii-roster__item is-active" : "kawaii-roster__item"}
+              onClick={() => setSelectedId(agent.id)}
+            >
+              <KawaiiAgentAvatar agent={agent} assetSet={visuals.get(agent.id)} characterIndex={index} />
+              <div className="kawaii-roster__text">
+                <strong>{staff.name}</strong>
+                <span><em>{staff.title}</em><small>{agent.status}</small></span>
+              </div>
+            </button>
+          );
+        })}
       </section>
 
       <section
@@ -153,52 +172,67 @@ export function KawaiiStaffRoom() {
       >
         {selected ? (
           <>
+            <button
+              type="button"
+              className="kawaii-staff-stage__nav kawaii-staff-stage__nav--prev"
+              onClick={() => selectRelativeStaff(-1)}
+              disabled={visibleAgents.length <= 1}
+              aria-label="이전 Staff"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
             <div className="kawaii-staff-stage__portrait">
               <KawaiiPortrait
                 agent={selected}
                 assetSet={visuals.get(selected.id)}
                 characterIndex={selectedIndex >= 0 ? selectedIndex : undefined}
+                showNameplate={false}
               />
             </div>
-            <div className="kawaii-staff-stage__card">
-              <h2>{kawaiiStaffTitle(selected)}, {kawaiiFirstName(selected.name)}</h2>
-              <p>{selected.capabilities || "I build, architect, and ship."}</p>
-              <div className="kawaii-list">
-                <div><span>Monthly Budget</span><strong>{formatCents(selected.budgetMonthlyCents ?? 0)}</strong></div>
-                <div><span>Monthly Spend</span><strong>{formatCents(selected.spentMonthlyCents ?? 0)}</strong></div>
-                <div><span>Last Heartbeat</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
-              </div>
+            <button
+              type="button"
+              className="kawaii-staff-stage__nav kawaii-staff-stage__nav--next"
+              onClick={() => selectRelativeStaff(1)}
+              disabled={visibleAgents.length <= 1}
+              aria-label="다음 Staff"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="kawaii-staff-stage__strip">
+              <span>{selectedDisplay?.title ?? kawaiiStaffTitle(selected)}</span>
+              <strong>{selectedDisplay?.name ?? "Staff"}</strong>
+              <p>{selected.capabilities || "업무를 준비하고 있습니다."}</p>
             </div>
           </>
         ) : (
-          <div className="kawaii-staff-stage__card">Staff가 아직 없습니다.</div>
+          <div className="kawaii-staff-stage__empty">Staff가 아직 없습니다.</div>
         )}
       </section>
 
       <section className="kawaii-profile-grid">
         <div className="kawaii-panel kawaii-profile-card">
           <Shield className="h-5 w-5 text-orange-500" />
-          <strong>Basic Information</strong>
+          <strong>기본 정보</strong>
           <div className="kawaii-list">
-            <div><span>Name</span><strong>{selected ? kawaiiFirstName(selected.name) : "-"}</strong></div>
-            <div><span>Role</span><strong>{selected ? kawaiiStaffTitle(selected) : "-"}</strong></div>
-            <div><span>Status</span><strong>{selected?.status ?? "-"}</strong></div>
-            <div><span>Adapter</span><strong>{selected?.adapterType ?? "-"}</strong></div>
+            <div><span>이름</span><strong>{selectedDisplay?.name ?? "-"}</strong></div>
+            <div><span>직책</span><strong>{selectedDisplay?.title ?? "-"}</strong></div>
+            <div><span>상태</span><strong>{selected?.status ?? "-"}</strong></div>
+            <div><span>어댑터</span><strong>{selected?.adapterType ?? "-"}</strong></div>
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <Target className="h-5 w-5 text-green-500" />
-          <strong>Operating Signals</strong>
+          <strong>운영 신호</strong>
           <div className="kawaii-list">
-            <div><span>Monthly Spend</span><strong>{selected ? formatCents(selected.spentMonthlyCents ?? 0) : "-"}</strong></div>
-            <div><span>Budget Limit</span><strong>{selected ? formatCents(selected.budgetMonthlyCents ?? 0) : "-"}</strong></div>
-            <div><span>Last Heartbeat</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
-            <div><span>Pause Reason</span><strong>{selected?.pauseReason ?? "None"}</strong></div>
+            <div><span>이번 달 지출</span><strong>{selected ? formatCents(selected.spentMonthlyCents ?? 0) : "-"}</strong></div>
+            <div><span>예산 한도</span><strong>{selected ? formatCents(selected.budgetMonthlyCents ?? 0) : "-"}</strong></div>
+            <div><span>마지막 신호</span><strong>{lastHeartbeatLabel(selected)}</strong></div>
+            <div><span>일시정지 사유</span><strong>{selected?.pauseReason ?? "없음"}</strong></div>
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <FileText className="h-5 w-5 text-coral-500" />
-          <strong>Assigned Quests</strong>
+          <strong>배정된 Quest</strong>
           <div className="kawaii-list">
             {(assignedIssues ?? []).slice(0, 4).map((issue) => (
               <div key={issue.id}>
@@ -206,15 +240,15 @@ export function KawaiiStaffRoom() {
                 <strong>{issue.status.replace(/_/g, " ")}</strong>
               </div>
             ))}
-            {(assignedIssues ?? []).length === 0 && <div><span>No assigned quests</span><strong>Clear</strong></div>}
+            {(assignedIssues ?? []).length === 0 && <div><span>배정된 Quest 없음</span><strong>정리됨</strong></div>}
           </div>
         </div>
         <div className="kawaii-panel kawaii-profile-card">
           <Users className="h-5 w-5 text-purple-500" />
-          <strong>Organization Chart</strong>
+          <strong>조직</strong>
           <div className="kawaii-list">
-            <div><span>Reports to</span><strong>{selectedManager ? kawaiiStaffLabel(selectedManager) : kawaiiCeoLabel(session)}</strong></div>
-            <div><span>Direct reports</span><strong>{directReportCount}</strong></div>
+            <div><span>보고 대상</span><strong>{selectedManagerDisplay?.label ?? kawaiiCeoLabel(session)}</strong></div>
+            <div><span>직접 보고</span><strong>{directReportCount}</strong></div>
           </div>
         </div>
       </section>

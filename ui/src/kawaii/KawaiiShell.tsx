@@ -26,41 +26,43 @@ import { SidebarCompanyMenu } from "../components/SidebarCompanyMenu";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useInboxBadge } from "../hooks/useInboxBadge";
+import { toCompanyRelativePath } from "../lib/company-routes";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
 import { needsKawaiiPolling } from "./assets";
-import { kawaiiCeoLabel, kawaiiStaffLabel } from "./display";
+import { characterForAgent } from "./characterLibrary";
+import { kawaiiCeoLabel, kawaiiStaffDisplayParts } from "./display";
 import { KawaiiAgentAvatar } from "./KawaiiAgentAvatar";
 import type { KawaiiSceneId } from "./sceneRegistry";
 import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 import { useKawaiiScene } from "./useKawaiiScene";
 
 const routeLabels: Array<{ match: string; title: string; subtitle: string; icon: LucideIcon }> = [
-  { match: "/onboarding", title: "Onboarding", subtitle: "회사와 Staff를 처음 세팅하는 공간", icon: Sparkles },
-  { match: "/instance/settings/adapters", title: "Adapter Settings", subtitle: "Staff가 사용할 실행 어댑터 연결", icon: Settings },
-  { match: "/dashboard/live", title: "Live Office", subtitle: "실시간 실행과 시스템 흐름", icon: BarChart3 },
-  { match: "/company/settings", title: "Company Settings", subtitle: "CEO 호칭, 권한, 연결 설정", icon: Settings },
-  { match: "/company/export", title: "Export Room", subtitle: "회사 데이터를 정리해 내보내기", icon: ClipboardList },
-  { match: "/company/import", title: "Import Room", subtitle: "외부 데이터를 회사 흐름으로 가져오기", icon: ClipboardList },
-  { match: "/companies", title: "Company Hall", subtitle: "운영할 회사를 선택하고 정리하세요.", icon: Home },
-  { match: "/skills", title: "Skill Library", subtitle: "Staff가 사용할 능력과 도구 관리", icon: Sparkles },
-  { match: "/plugins", title: "Plugin Manager", subtitle: "외부 확장과 어댑터 연결", icon: Settings },
-  { match: "/org", title: "Org Chart", subtitle: "Staff 조직 구조와 보고 흐름", icon: Users },
-  { match: "/projects", title: "Project Studio", subtitle: "프로젝트별 퀘스트와 작업 공간", icon: ClipboardList },
-  { match: "/workspaces", title: "Workspace Studio", subtitle: "실행 공간과 작업 상태", icon: BarChart3 },
-  { match: "/search", title: "Search Desk", subtitle: "회사 기록과 업무 찾기", icon: ClipboardList },
-  { match: "/routines", title: "Routine Room", subtitle: "반복 업무와 자동 실행 흐름", icon: CheckSquare },
-  { match: "/execution-workspaces", title: "Runtime Room", subtitle: "실행 환경, 로그, 연결 상태", icon: BarChart3 },
-  { match: "/u/", title: "Profile", subtitle: "사용자와 활동 정보", icon: Users },
-  { match: "/design-guide", title: "Design Guide", subtitle: "카와이 오피스의 표시 기준", icon: Sparkles },
-  { match: "/dashboard", title: "Office", subtitle: "AI 에이전트 회사 운영 대시보드", icon: Home },
-  { match: "/issues", title: "Quests", subtitle: "진행 중인 업무와 검토 요청", icon: ClipboardList },
+  { match: "/onboarding", title: "처음 설정", subtitle: "회사와 Staff를 처음 세팅하는 공간", icon: Sparkles },
+  { match: "/instance/settings/adapters", title: "어댑터 설정", subtitle: "Staff가 사용할 실행 어댑터 연결", icon: Settings },
+  { match: "/dashboard/live", title: "실시간 오피스", subtitle: "실시간 실행과 시스템 흐름", icon: BarChart3 },
+  { match: "/company/settings", title: "회사 설정", subtitle: "CEO 호칭, 권한, 연결 설정", icon: Settings },
+  { match: "/company/export", title: "내보내기", subtitle: "회사 데이터를 정리해 내보내기", icon: ClipboardList },
+  { match: "/company/import", title: "가져오기", subtitle: "외부 데이터를 회사 흐름으로 가져오기", icon: ClipboardList },
+  { match: "/companies", title: "회사 선택", subtitle: "운영할 회사를 선택하고 정리하세요.", icon: Home },
+  { match: "/skills", title: "Skill 보관함", subtitle: "Staff가 사용할 능력과 도구 관리", icon: Sparkles },
+  { match: "/plugins", title: "플러그인", subtitle: "외부 확장과 어댑터 연결", icon: Settings },
+  { match: "/org", title: "조직도", subtitle: "Staff 조직 구조와 보고 흐름", icon: Users },
+  { match: "/projects", title: "프로젝트", subtitle: "프로젝트별 Quest와 작업 공간", icon: ClipboardList },
+  { match: "/workspaces", title: "작업 공간", subtitle: "실행 공간과 작업 상태", icon: BarChart3 },
+  { match: "/search", title: "검색", subtitle: "회사 기록과 업무 찾기", icon: ClipboardList },
+  { match: "/routines", title: "루틴", subtitle: "반복 업무와 자동 실행 흐름", icon: CheckSquare },
+  { match: "/execution-workspaces", title: "실행 환경", subtitle: "실행 환경, 로그, 연결 상태", icon: BarChart3 },
+  { match: "/u/", title: "프로필", subtitle: "사용자와 활동 정보", icon: Users },
+  { match: "/design-guide", title: "디자인 기준", subtitle: "카와이 오피스의 표시 기준", icon: Sparkles },
+  { match: "/dashboard", title: "오피스", subtitle: "AI 에이전트 회사 운영 대시보드", icon: Home },
+  { match: "/issues", title: "Quest", subtitle: "진행 중인 업무와 검토 요청", icon: ClipboardList },
   { match: "/agents", title: "Staff Room", subtitle: "AI 에이전트 직원들을 관리하고 팀을 구성하세요.", icon: Users },
-  { match: "/approvals", title: "Approval & Budget Room", subtitle: "에이전트의 요청을 검토하고 예산을 관리하세요.", icon: ShieldCheck },
-  { match: "/goals", title: "Goals", subtitle: "회사 목표와 진행 상태", icon: Flag },
-  { match: "/inbox", title: "Messages", subtitle: "새 알림과 대화", icon: MessageCircle },
-  { match: "/costs", title: "Budget", subtitle: "지출과 제한 관리", icon: DollarSign },
-  { match: "/activity", title: "Diary", subtitle: "오늘의 업무 기록", icon: BookOpen },
+  { match: "/approvals", title: "승인·예산", subtitle: "에이전트의 요청을 검토하고 예산을 관리하세요.", icon: ShieldCheck },
+  { match: "/goals", title: "목표", subtitle: "회사 목표와 진행 상태", icon: Flag },
+  { match: "/inbox", title: "메시지", subtitle: "새 알림과 대화", icon: MessageCircle },
+  { match: "/costs", title: "예산", subtitle: "지출과 제한 관리", icon: DollarSign },
+  { match: "/activity", title: "기록", subtitle: "오늘의 업무 기록", icon: BookOpen },
 ];
 
 const fallbackRouteLabel = {
@@ -71,15 +73,15 @@ const fallbackRouteLabel = {
 } satisfies { match: string; title: string; subtitle: string; icon: LucideIcon };
 
 export const kawaiiNavItems: Array<{ to: string; label: string; icon: LucideIcon; badge?: string }> = [
-  { to: "/dashboard", label: "Office", icon: Home },
-  { to: "/issues", label: "Quests", icon: ClipboardList },
+  { to: "/dashboard", label: "오피스", icon: Home },
+  { to: "/issues", label: "Quest", icon: ClipboardList },
   { to: "/agents/all", label: "Staff", icon: Users },
-  { to: "/goals", label: "Goals", icon: Flag },
-  { to: "/inbox", label: "Messages", icon: MessageCircle },
-  { to: "/costs", label: "Budget", icon: DollarSign },
-  { to: "/activity", label: "Diary", icon: BookOpen },
-  { to: "/approvals/pending", label: "Approvals", icon: ShieldCheck },
-  { to: "/company/settings", label: "Settings", icon: Settings },
+  { to: "/goals", label: "목표", icon: Flag },
+  { to: "/inbox", label: "메시지", icon: MessageCircle },
+  { to: "/costs", label: "예산", icon: DollarSign },
+  { to: "/activity", label: "기록", icon: BookOpen },
+  { to: "/approvals/pending", label: "승인", icon: ShieldCheck },
+  { to: "/company/settings", label: "설정", icon: Settings },
 ];
 
 type KawaiiDialogueChoiceAction =
@@ -223,7 +225,7 @@ function useKawaiiCeoAsset() {
 }
 
 function navBadge(label: string, pendingApprovals: number, fallback?: string) {
-  if (label === "Approvals" && pendingApprovals > 0) return String(pendingApprovals);
+  if (label === "승인" && pendingApprovals > 0) return String(pendingApprovals);
   return fallback;
 }
 
@@ -262,7 +264,7 @@ export function KawaiiSidebar() {
 
       <button type="button" className="kawaii-sidebar__primary" onClick={() => openNewIssue()}>
         <Sparkles className="h-4 w-4" />
-        New Quest
+        새 Quest
       </button>
 
       <nav className="kawaii-sidebar__nav">
@@ -288,30 +290,33 @@ export function KawaiiSidebar() {
         <div>
           <p>CEO</p>
           <strong>{kawaiiCeoLabel(session)}</strong>
-          <span>Owner approval</span>
+          <span>최종 승인권자</span>
         </div>
       </section>
 
       <div className="kawaii-sidebar__staff">
         <p>Staff</p>
-        {(agents ?? []).slice(0, 5).map((agent, index) => (
-          <NavLink key={agent.id} to={companyPath(prefix, `/agents/${agent.id}/dashboard`)}>
-            <KawaiiAgentAvatar
-              agent={agent}
-              assetSet={visuals.get(agent.id)}
-              characterIndex={index}
-              className="kawaii-sidebar__mini-avatar"
-            />
-            <span>{kawaiiStaffLabel(agent)}</span>
-          </NavLink>
-        ))}
+        {(agents ?? []).slice(0, 5).map((agent, index) => {
+          const staff = kawaiiStaffDisplayParts(agent, characterForAgent(agent, index).name);
+          return (
+            <NavLink key={agent.id} to={companyPath(prefix, `/agents/${agent.id}/dashboard`)}>
+              <KawaiiAgentAvatar
+                agent={agent}
+                assetSet={visuals.get(agent.id)}
+                characterIndex={index}
+                className="kawaii-sidebar__mini-avatar"
+              />
+              <span><strong>{staff.name}</strong><em>{staff.title}</em></span>
+            </NavLink>
+          );
+        })}
       </div>
 
       <div className="kawaii-sidebar__status">
         <div className="kawaii-cat" />
         <div>
-          <strong>System Status</strong>
-          <span>All systems operational</span>
+          <strong>시스템 상태</strong>
+          <span>정상 운영 중</span>
         </div>
       </div>
     </aside>
@@ -401,7 +406,9 @@ export function KawaiiTopBar() {
         </div>
         <button
           type="button"
-          aria-label="Open notifications"
+          className={cn("kawaii-topbar__alarm", inboxBadge.inbox > 0 && "has-unread")}
+          aria-label={inboxBadge.inbox > 0 ? `알림 ${inboxBadge.inbox}개 열기` : "알림함 열기"}
+          title={inboxBadge.inbox > 0 ? `알림 ${inboxBadge.inbox}개` : "알림함 열기"}
           onClick={() => navigate("/inbox/mine")}
         >
           <Bell className="h-4 w-4" />
@@ -410,7 +417,7 @@ export function KawaiiTopBar() {
         <div className="kawaii-ceo-chip">
           <div>
             <strong>{kawaiiCeoLabel(session)}</strong>
-            <span>Founder & Owner</span>
+            <span>최종 승인권자</span>
           </div>
           <KawaiiAgentAvatar variant="user" assetSet={ceoAssetSet} />
         </div>
@@ -423,7 +430,9 @@ export function KawaiiTopBar() {
 export function KawaiiDialogueDock() {
   const scene = useKawaiiScene();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openNewAgent, openNewGoal, openNewIssue, openNewProject } = useDialogActions();
+  const currentPath = toCompanyRelativePath(location.pathname).split(/[?#]/)[0] ?? location.pathname;
 
   function runChoice(action: KawaiiDialogueChoiceAction | null) {
     if (!action) return;
@@ -437,6 +446,12 @@ export function KawaiiDialogueDock() {
     if (action.target === "newProject") openNewProject();
   }
 
+  function isCurrentChoice(action: KawaiiDialogueChoiceAction | null) {
+    if (action?.kind !== "navigate") return false;
+    const [actionPath] = action.to.split(/[?#]/);
+    return actionPath === currentPath;
+  }
+
   return (
     <section className="kawaii-dialogue-dock" aria-label="Office dialogue">
       <div className="kawaii-dialogue-dock__speaker">
@@ -448,6 +463,7 @@ export function KawaiiDialogueDock() {
           <button
             key={choice}
             type="button"
+            className={cn(isCurrentChoice(resolveKawaiiDialogueChoiceAction(scene.id, index)) && "is-current")}
             onClick={() => runChoice(resolveKawaiiDialogueChoiceAction(scene.id, index))}
           >
             <span>{index + 1}</span>

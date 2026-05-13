@@ -30,7 +30,7 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     id: "staff_room",
     match: ["/agents"],
     speaker: { characterId: "rika", title: "CTO", name: "Rika" },
-    text: ({ ceoHonorific }) => `${ceoHonorific}, Staff Room에서 각 에이전트의 상태와 업무 분위기를 한눈에 볼 수 있게 준비했어요.`,
+    text: ({ ceoHonorific }) => `${ceoHonorific}, Staff 상태와 업무 분위기를 한눈에 볼 수 있게 준비했어요.`,
     choices: ["권한 설정", "새 목표 지정", "업무 기록 보기", "팀 구조 변경"],
   },
   {
@@ -38,7 +38,7 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     match: ["/approvals", "/costs"],
     speaker: { characterId: "nari", title: "Finance", name: "Nari" },
     text: ({ ceoHonorific }) => `${ceoHonorific}, 승인 요청과 예산 흐름을 함께 확인할 수 있도록 정리했어요. 위험한 선택은 제가 먼저 표시해둘게요.`,
-    choices: ["승인 대기 보기", "승인 기록 보기", "예산 확인", "Inbox 확인"],
+    choices: ["승인 대기 보기", "승인 기록 보기", "예산 확인", "메시지함 확인"],
   },
   {
     id: "issue_quest_room",
@@ -65,7 +65,7 @@ export const kawaiiScenes: KawaiiSceneDefinition[] = [
     id: "project_studio",
     match: ["/projects", "/workspaces"],
     speaker: { characterId: "sera", title: "PM", name: "Sera" },
-    text: ({ ceoHonorific }) => `${ceoHonorific}, 프로젝트와 작업 공간의 흐름을 한 장면처럼 이어서 볼 수 있게 정리했어요.`,
+    text: ({ ceoHonorific }) => `${ceoHonorific}, 프로젝트와 작업 공간의 흐름을 한 장면처럼 이어서 정리했어요.`,
     choices: ["프로젝트 보기", "작업 공간 확인", "막힌 일 찾기", "Staff 배치"],
   },
   {

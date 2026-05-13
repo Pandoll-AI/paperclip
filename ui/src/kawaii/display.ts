@@ -7,20 +7,21 @@ function compact(value: string | null | undefined) {
   return (value ?? "").trim().replace(/\s+/g, " ");
 }
 
-export function kawaiiFirstName(name: string | null | undefined) {
+const roleTokenPattern = /^(ceo|cto|cfo|coo|cmo|pm|qa|ui|ux|dev|ops|staff|agent|engineer|designer|frontend|backend)$/i;
+
+function isRoleToken(value: string) {
+  return roleTokenPattern.test(value.replace(/\s+/g, " ").trim());
+}
+
+export function kawaiiFirstName(name: string | null | undefined, fallback = "Staff") {
   const normalized = compact(name);
-  if (!normalized) return "Staff";
-  return normalized.split(" ")[0] ?? normalized;
+  const first = normalized.split(" ")[0] ?? normalized;
+  if (!first || isRoleToken(first)) return fallback;
+  return first;
 }
 
 export function kawaiiStaffTitle(agent: DisplayAgent | null | undefined) {
-  const rawRole = compact(agent?.role).toLowerCase();
   const rawTitle = compact(agent?.title);
-
-  if (rawRole === "ceo" || /\bceo\b/i.test(rawTitle)) {
-    return "CTO";
-  }
-
   const title = rawTitle || compact(agent?.role) || "Staff";
   return title
     .replace(/^Royal\s+/i, "")
@@ -32,8 +33,18 @@ export function kawaiiStaffTitle(agent: DisplayAgent | null | undefined) {
     .trim() || "Staff";
 }
 
+export function kawaiiStaffDisplayParts(agent: DisplayAgent | null | undefined, fallbackName = "Staff") {
+  const title = kawaiiStaffTitle(agent);
+  const name = kawaiiFirstName(agent?.name, fallbackName);
+  return {
+    title,
+    name,
+    label: `${title}, ${name}`,
+  };
+}
+
 export function kawaiiStaffLabel(agent: DisplayAgent | null | undefined) {
-  return `${kawaiiStaffTitle(agent)}, ${kawaiiFirstName(agent?.name)}`;
+  return kawaiiStaffDisplayParts(agent).label;
 }
 
 export function kawaiiUserName(session: AuthSession | null | undefined) {

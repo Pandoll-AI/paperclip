@@ -3,18 +3,20 @@ import { Sparkles } from "lucide-react";
 import { cn } from "../lib/utils";
 import { assetByKey, isKawaiiGenerating } from "./assets";
 import { characterForAgent } from "./characterLibrary";
-import { kawaiiFirstName, kawaiiStaffTitle } from "./display";
+import { kawaiiStaffDisplayParts } from "./display";
 
 export function KawaiiPortrait({
   agent,
   assetSet,
   size = "hero",
   characterIndex,
+  showNameplate = true,
 }: {
   agent?: Pick<Agent, "id" | "name" | "role" | "title"> | null;
   assetSet?: KawaiiAssetSet | null;
   size?: "hero" | "card" | "cutin";
   characterIndex?: number;
+  showNameplate?: boolean;
 }) {
   const portrait = assetByKey(
     assetSet,
@@ -27,6 +29,7 @@ export function KawaiiPortrait({
     : size === "cutin"
       ? character.dockCutinImage
     : character.sceneImage;
+  const display = kawaiiStaffDisplayParts(agent, character.name);
 
   return (
     <div className={cn("kawaii-portrait", `kawaii-portrait--${size}`, generating && "is-painting")}>
@@ -40,10 +43,10 @@ export function KawaiiPortrait({
           <Sparkles className="kawaii-portrait__spark h-5 w-5" />
         </div>
       )}
-      {agent && (
+      {agent && showNameplate && (
         <div className="kawaii-portrait__nameplate">
-          <strong>{kawaiiFirstName(agent.name)}</strong>
-          <span>{kawaiiStaffTitle(agent)}</span>
+          <strong>{display.name}</strong>
+          <span>{display.title}</span>
         </div>
       )}
     </div>
@@ -55,7 +58,7 @@ export function KawaiiMiniChart({ values }: { values: number[] }) {
   if (!hasData) {
     return (
       <div className="kawaii-mini-chart kawaii-mini-chart--empty">
-        <em>No activity yet</em>
+        <em>아직 활동 없음</em>
       </div>
     );
   }

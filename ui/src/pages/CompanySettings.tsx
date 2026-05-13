@@ -406,8 +406,8 @@ export function CompanySettings() {
         </div>
         <div className="space-y-3 rounded-md border border-border px-4 py-4">
           <Field
-            label="CEO honorific"
-            hint="Used by Kawaii staff dialogue. Default is 대표님 in Korean and Mr. CEO in English."
+            label="CEO 호칭"
+            hint="카와이 대화에서 Staff가 사용자를 부를 때만 쓰는 호칭입니다."
           >
             <div className="flex flex-col gap-1.5">
               <input
@@ -419,7 +419,7 @@ export function CompanySettings() {
                 onChange={(e) => setCeoHonorific(e.target.value)}
               />
               <span className="text-xs text-muted-foreground">
-                Example: {ceoHonorific.trim() || kawaiiDefaultCeoHonorific()}, 승인 요청을 확인했어요.
+                예시: {ceoHonorific.trim() || kawaiiDefaultCeoHonorific()}, 승인 요청을 확인했어요.
               </span>
             </div>
           </Field>

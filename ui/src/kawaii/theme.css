@@ -44,6 +44,29 @@
   border-radius: 14px;
 }
 
+.kawaii-shell button {
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    color 150ms ease;
+}
+
+.kawaii-shell button:not(:disabled) {
+  cursor: pointer;
+}
+
+.kawaii-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.kawaii-shell button:focus-visible {
+  outline: 3px solid rgba(255, 127, 110, 0.32);
+  outline-offset: 3px;
+}
+
 .kawaii-board {
   display: grid;
   height: 100dvh;
@@ -69,7 +92,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 8px 200px;
+  padding: 18px 8px 260px;
 }
 
 .kawaii-sidebar {
@@ -150,6 +173,15 @@
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 14px 24px rgba(255, 127, 110, 0.22);
+}
+
+.kawaii-sidebar__primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 30px rgba(255, 127, 110, 0.3);
+}
+
+.kawaii-sidebar__primary:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .kawaii-sidebar__nav {
@@ -289,6 +321,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 42px;
   border-radius: 14px;
   color: rgba(56, 37, 31, 0.74);
   padding: 6px 8px;
@@ -304,6 +337,29 @@
   height: 28px;
   flex-basis: 28px;
   border-radius: 10px;
+}
+
+.kawaii-sidebar__staff a > span {
+  display: grid;
+  min-width: 0;
+}
+
+.kawaii-sidebar__staff a strong,
+.kawaii-sidebar__staff a em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kawaii-sidebar__staff a strong {
+  color: #5f3b2b;
+  font-size: 12px;
+}
+
+.kawaii-sidebar__staff a em {
+  color: rgba(56, 37, 31, 0.54);
+  font-size: 10px;
+  font-style: normal;
 }
 
 .kawaii-sidebar__status {
@@ -400,6 +456,33 @@
   border: 1px solid rgba(255, 127, 110, 0.22);
   background: rgba(255, 255, 255, 0.6);
   color: #7d4a37;
+  box-shadow: 0 8px 18px rgba(119, 72, 48, 0.06);
+}
+
+.kawaii-topbar__actions button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.46);
+  background: #fff6ec;
+  box-shadow: 0 14px 24px rgba(119, 72, 48, 0.13);
+}
+
+.kawaii-topbar__actions button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.kawaii-topbar__alarm.has-unread {
+  border-color: rgba(255, 116, 100, 0.48);
+  background: linear-gradient(135deg, rgba(255, 246, 236, 0.94), rgba(255, 226, 218, 0.78));
+}
+
+.kawaii-topbar__alarm.has-unread::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(255, 116, 100, 0.28);
+  border-radius: inherit;
+  animation: kawaii-alarm-pulse 1.8s ease-out infinite;
+  pointer-events: none;
 }
 
 .kawaii-topbar__actions button em {
@@ -415,6 +498,11 @@
   color: white;
   font-size: 10px;
   font-style: normal;
+}
+
+@keyframes kawaii-alarm-pulse {
+  0% { opacity: 0.75; transform: scale(0.96); }
+  100% { opacity: 0; transform: scale(1.16); }
 }
 
 .kawaii-ceo-chip {
@@ -878,6 +966,13 @@
   font-size: 15px;
 }
 
+.kawaii-staff-card h3 span {
+  display: block;
+  color: rgba(56, 37, 31, 0.56);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .kawaii-staff-card__portrait {
   height: 120px;
   margin: 4px 0;
@@ -938,7 +1033,7 @@
 
 .kawaii-staff-room {
   display: grid;
-  grid-template-columns: 245px minmax(320px, 0.9fr) minmax(0, 1.5fr);
+  grid-template-columns: 245px minmax(360px, 0.95fr) minmax(0, 1.45fr);
   gap: 14px;
 }
 
@@ -953,11 +1048,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 70px;
   border: 1px solid rgba(255, 127, 110, 0.12);
   border-radius: 16px;
   background: rgba(255,255,255,0.42);
   padding: 10px;
   text-align: left;
+}
+
+.kawaii-roster__item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.34);
+  background: rgba(255, 248, 240, 0.82);
 }
 
 .kawaii-roster__item.is-active {
@@ -966,16 +1068,43 @@
   box-shadow: 0 12px 30px rgba(122, 77, 162, 0.12);
 }
 
-.kawaii-roster__item strong,
+.kawaii-roster__text {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.kawaii-roster__text strong,
 .kawaii-profile-card strong {
   display: block;
   font-size: 14px;
 }
 
-.kawaii-roster__item span,
+.kawaii-roster__text strong,
+.kawaii-roster__text em,
+.kawaii-roster__text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kawaii-roster__text span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.kawaii-roster__text em,
+.kawaii-roster__text small,
 .kawaii-profile-card span {
   color: rgba(56, 37, 31, 0.58);
   font-size: 12px;
+}
+
+.kawaii-roster__text em {
+  font-style: normal;
+  font-weight: 700;
 }
 
 .kawaii-staff-stage {
@@ -1007,18 +1136,89 @@
 
 .kawaii-staff-stage__portrait {
   position: absolute;
-  inset: 18px 18px 150px;
+  inset: 14px 14px 88px;
 }
 
-.kawaii-staff-stage__card {
+.kawaii-staff-stage .kawaii-portrait--hero img {
+  object-fit: contain;
+  object-position: center bottom;
+  background: transparent;
+}
+
+.kawaii-staff-stage__strip {
   position: absolute;
-  right: 22px;
-  bottom: 24px;
-  left: 22px;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  z-index: 3;
+  border: 1px solid rgba(255, 127, 110, 0.2);
   border-radius: 18px;
-  background: rgba(255, 253, 247, 0.86);
-  padding: 18px;
-  box-shadow: 0 18px 38px rgba(92, 54, 34, 0.14);
+  background: rgba(255, 253, 247, 0.72);
+  padding: 12px 16px;
+  box-shadow: 0 14px 30px rgba(92, 54, 34, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.kawaii-staff-stage__strip span {
+  display: inline-flex;
+  border-radius: 999px;
+  background: rgba(255, 143, 131, 0.16);
+  color: #b94d43;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.kawaii-staff-stage__strip strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--kawaii-ink);
+  font-size: 21px;
+}
+
+.kawaii-staff-stage__strip p {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: rgba(56, 37, 31, 0.66);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kawaii-staff-stage__nav {
+  position: absolute;
+  top: 48%;
+  z-index: 5;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 127, 110, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.72);
+  color: #7d4a37;
+  box-shadow: 0 12px 24px rgba(92, 54, 34, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.kawaii-staff-stage__nav:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.04);
+  background: #fff5ec;
+}
+
+.kawaii-staff-stage__nav--prev {
+  left: 14px;
+}
+
+.kawaii-staff-stage__nav--next {
+  right: 14px;
+}
+
+.kawaii-staff-stage__empty {
+  display: grid;
+  min-height: 650px;
+  place-items: center;
+  color: rgba(56, 37, 31, 0.58);
 }
 
 .kawaii-profile-grid {
@@ -1065,6 +1265,12 @@
   text-align: left;
 }
 
+.kawaii-approval-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.38);
+  background: rgba(255, 248, 240, 0.9);
+}
+
 .kawaii-approval-card.is-active {
   border-color: rgba(255, 127, 110, 0.5);
   background: #fff5ec;
@@ -1095,10 +1301,25 @@
   font-weight: 700;
 }
 
+.kawaii-decision-grid button:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.44);
+  box-shadow: 0 12px 24px rgba(119, 72, 48, 0.1);
+}
+
 .kawaii-decision-grid button:first-child {
   border-color: rgba(93, 185, 128, 0.42);
   background: #effaf0;
   color: #277243;
+}
+
+.kawaii-decision-grid--resolved {
+  grid-template-columns: 1fr;
+}
+
+.kawaii-empty-note {
+  border: 1px dashed rgba(255, 127, 110, 0.3) !important;
+  background: rgba(255, 250, 242, 0.7) !important;
 }
 
 .kawaii-budget-donut {
@@ -1177,6 +1398,31 @@
   color: #5f3b2b;
   padding: 10px 14px;
   font-weight: 700;
+  box-shadow: 0 8px 18px rgba(119, 72, 48, 0.05);
+}
+
+.kawaii-dialogue-dock__choices button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 127, 110, 0.48);
+  background: #fff4e9;
+  box-shadow: 0 14px 26px rgba(119, 72, 48, 0.12);
+}
+
+.kawaii-dialogue-dock__choices button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.kawaii-dialogue-dock__choices button.is-current {
+  border-color: rgba(120, 215, 183, 0.48);
+  background: linear-gradient(135deg, rgba(239, 250, 240, 0.9), rgba(255, 250, 242, 0.9));
+}
+
+.kawaii-dialogue-dock__choices button.is-current::after {
+  content: "현재";
+  margin-left: auto;
+  color: #4f9b74;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .kawaii-dialogue-dock__choices span {

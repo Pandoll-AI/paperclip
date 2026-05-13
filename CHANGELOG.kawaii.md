@@ -11,3 +11,4 @@
 - Hardened Kawaii shell asset loading so rendering the shell does not enqueue image generation and CEO assets stay scoped to the active company.
 - Hardened the launcher so help flags are side-effect free and the default fork launch path starts from an available 3101+ port unless a port is explicitly configured.
 - Validated kawaii menu targets against known routes and fixed mismatched runtime and project-creation menu actions.
+- Polished Kawaii interaction and identity rules across alarm controls, dialogue choices, Staff display, Korean copy, and Staff Room character staging.

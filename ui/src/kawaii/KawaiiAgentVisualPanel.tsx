@@ -3,7 +3,7 @@ import { RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { assetByKey, isKawaiiGenerating } from "./assets";
 import { characterForAgent } from "./characterLibrary";
-import { kawaiiFirstName, kawaiiStaffTitle } from "./display";
+import { kawaiiStaffDisplayParts } from "./display";
 
 export function KawaiiAgentVisualPanel({
   agent,
@@ -18,13 +18,14 @@ export function KawaiiAgentVisualPanel({
 }) {
   const sceneComposite = assetByKey(assetSet, ["scene_composite"]);
   const character = characterForAgent(agent);
+  const display = kawaiiStaffDisplayParts(agent, character.name);
   const sceneSrc = sceneComposite?.contentPath ?? character.sceneImage;
   const generating = regenerating || isKawaiiGenerating(assetSet);
   const dialogue = assetSet?.status === "failed"
-    ? "Visual atelier needs another pass."
+    ? "캐릭터 이미지가 다시 필요합니다."
     : generating
-      ? "Character art is being painted in the background."
-      : "Ready for the next scene.";
+      ? "백그라운드에서 캐릭터를 그리고 있습니다."
+      : "다음 장면 준비가 끝났습니다.";
 
   return (
     <section className="kawaii-agent-stage" aria-label="Kawaii staff visual scene">
@@ -32,8 +33,8 @@ export function KawaiiAgentVisualPanel({
       <div className="kawaii-agent-stage__light" />
       <div className="kawaii-agent-stage__copy">
         <p className="kawaii-agent-stage__eyebrow">Staff Room</p>
-        <h3>{kawaiiStaffTitle(agent)}, {kawaiiFirstName(agent.name)}</h3>
-        <p>{kawaiiStaffTitle(agent)}</p>
+        <h3>{display.label}</h3>
+        <p>{display.title}</p>
       </div>
       {!sceneSrc && (
         <div className="kawaii-agent-stage__placeholder">
@@ -42,13 +43,13 @@ export function KawaiiAgentVisualPanel({
       )}
       <div className="kawaii-dialogue">
         <div>
-          <span>{kawaiiStaffTitle(agent)}, {kawaiiFirstName(agent.name)}</span>
+          <span>{display.label}</span>
           <p>{dialogue}</p>
         </div>
         {onRegenerate && (
           <Button size="sm" variant="outline" onClick={onRegenerate} disabled={generating}>
             <RefreshCw className="h-3.5 w-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">{generating ? "Painting" : "Regenerate"}</span>
+            <span className="hidden sm:inline">{generating ? "제작 중" : "다시 생성"}</span>
           </Button>
         )}
       </div>
