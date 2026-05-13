@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useLocation } from "@/lib/router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,7 +21,8 @@ import type { KawaiiAssetSet } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { approvalsApi } from "../api/approvals";
 import { authApi } from "../api/auth";
-import { kawaiiAssetsApi } from "../api/kawaiiAssets";
+import { kawaiiAssetsApi, type KawaiiAssetListOptions } from "../api/kawaiiAssets";
+import { SidebarCompanyMenu } from "../components/SidebarCompanyMenu";
 import { useCompany } from "../context/CompanyContext";
 import { useDialogActions } from "../context/DialogContext";
 import { queryKeys } from "../lib/queryKeys";
@@ -33,15 +34,15 @@ import { useKawaiiSceneAssets } from "./useKawaiiSceneAssets";
 import { useKawaiiScene } from "./useKawaiiScene";
 
 const routeLabels: Array<{ match: string; title: string; subtitle: string; icon: LucideIcon }> = [
-  { match: "/onboarding", title: "Onboarding Atelier", subtitle: "회사와 Staff를 처음 세팅하는 공간", icon: Sparkles },
-  { match: "/instance/settings/adapters", title: "Adapter Atelier", subtitle: "Staff가 사용할 실행 어댑터 연결", icon: Settings },
+  { match: "/onboarding", title: "Onboarding", subtitle: "회사와 Staff를 처음 세팅하는 공간", icon: Sparkles },
+  { match: "/instance/settings/adapters", title: "Adapter Settings", subtitle: "Staff가 사용할 실행 어댑터 연결", icon: Settings },
   { match: "/dashboard/live", title: "Live Office", subtitle: "실시간 실행과 시스템 흐름", icon: BarChart3 },
-  { match: "/company/settings", title: "Settings Atelier", subtitle: "CEO 호칭, 권한, 연결 설정", icon: Settings },
+  { match: "/company/settings", title: "Company Settings", subtitle: "CEO 호칭, 권한, 연결 설정", icon: Settings },
   { match: "/company/export", title: "Export Room", subtitle: "회사 데이터를 정리해 내보내기", icon: ClipboardList },
   { match: "/company/import", title: "Import Room", subtitle: "외부 데이터를 회사 흐름으로 가져오기", icon: ClipboardList },
   { match: "/companies", title: "Company Hall", subtitle: "운영할 회사를 선택하고 정리하세요.", icon: Home },
-  { match: "/skills", title: "Skill Atelier", subtitle: "Staff가 사용할 능력과 도구 관리", icon: Sparkles },
-  { match: "/plugins", title: "Plugin Atelier", subtitle: "외부 확장과 어댑터 연결", icon: Settings },
+  { match: "/skills", title: "Skill Library", subtitle: "Staff가 사용할 능력과 도구 관리", icon: Sparkles },
+  { match: "/plugins", title: "Plugin Manager", subtitle: "외부 확장과 어댑터 연결", icon: Settings },
   { match: "/org", title: "Org Chart", subtitle: "Staff 조직 구조와 보고 흐름", icon: Users },
   { match: "/projects", title: "Project Studio", subtitle: "프로젝트별 퀘스트와 작업 공간", icon: ClipboardList },
   { match: "/workspaces", title: "Workspace Studio", subtitle: "실행 공간과 작업 상태", icon: BarChart3 },
@@ -106,6 +107,42 @@ function usePendingApprovalsCount(companyId: string | null | undefined) {
   return (approvals ?? []).filter((item) => item.status === "pending" || item.status === "revision_requested").length;
 }
 
+function useKawaiiCeoAssetSet(companyId: string | null | undefined) {
+  const filters = useMemo(
+    (): KawaiiAssetListOptions => ({
+      ownerType: "company",
+      ownerId: companyId ?? undefined,
+      purpose: "ceo_setup",
+    }),
+    [companyId],
+  );
+  const assetsQuery = useQuery({
+    queryKey: queryKeys.kawaiiAssets.list(companyId ?? "__none__", filters),
+    queryFn: () => kawaiiAssetsApi.list(companyId!, filters),
+    enabled: !!companyId,
+    refetchInterval: (query) => needsKawaiiPolling(query.state.data) ? 4_000 : false,
+  });
+
+  return assetsQuery.data?.find((set) => set.companyId === companyId) ?? null;
+}
+
+const KawaiiCeoAssetContext = createContext<KawaiiAssetSet | null>(null);
+
+export function KawaiiCeoAssetProvider({ children }: { children: ReactNode }) {
+  const { selectedCompanyId } = useCompany();
+  const ceoAssetSet = useKawaiiCeoAssetSet(selectedCompanyId);
+
+  return (
+    <KawaiiCeoAssetContext.Provider value={ceoAssetSet}>
+      {children}
+    </KawaiiCeoAssetContext.Provider>
+  );
+}
+
+function useKawaiiCeoAsset() {
+  return useContext(KawaiiCeoAssetContext);
+}
+
 function navBadge(label: string, pendingApprovals: number, fallback?: string) {
   if (label === "Approvals" && pendingApprovals > 0) return String(pendingApprovals);
   return fallback;
@@ -133,14 +170,14 @@ export function KawaiiSidebar() {
   });
   const visuals = useMemo(() => visualMap(visualSets), [visualSets]);
   const pendingApprovals = usePendingApprovalsCount(selectedCompanyId);
+  const ceoAssetSet = useKawaiiCeoAsset();
 
   return (
     <aside className="kawaii-sidebar">
       <div className="kawaii-sidebar__brand">
         <div className="kawaii-brand-mark">✿</div>
-        <div>
-          <strong>{selectedCompany?.name ?? "Paperclip Office"}</strong>
-          <span>Pandoll AI Office</span>
+        <div className="kawaii-sidebar__company-menu">
+          <SidebarCompanyMenu />
         </div>
       </div>
 
@@ -168,7 +205,7 @@ export function KawaiiSidebar() {
       </nav>
 
       <section className="kawaii-sidebar__owner" aria-label="CEO owner">
-        <KawaiiAgentAvatar variant="user" className="kawaii-sidebar__owner-avatar" />
+        <KawaiiAgentAvatar variant="user" assetSet={ceoAssetSet} className="kawaii-sidebar__owner-avatar" />
         <div>
           <p>CEO</p>
           <strong>{kawaiiCeoLabel(session)}</strong>
@@ -261,6 +298,7 @@ export function KawaiiTopBar() {
   const info = routeInfo(location.pathname);
   const Icon = info.icon;
   const { selectedCompanyId } = useCompany();
+  const ceoAssetSet = useKawaiiCeoAsset();
   const { data: session } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
@@ -277,6 +315,9 @@ export function KawaiiTopBar() {
         </div>
       </div>
       <div className="kawaii-topbar__actions">
+        <div className="kawaii-topbar__company">
+          <SidebarCompanyMenu />
+        </div>
         <button aria-label="Notifications">
           <Bell className="h-4 w-4" />
           <em>3</em>
@@ -286,7 +327,7 @@ export function KawaiiTopBar() {
             <strong>{kawaiiCeoLabel(session)}</strong>
             <span>Founder & Owner</span>
           </div>
-          <KawaiiAgentAvatar variant="user" />
+          <KawaiiAgentAvatar variant="user" assetSet={ceoAssetSet} />
         </div>
       </div>
       {selectedCompanyId ? <span className="sr-only">Current company: {selectedCompanyId}</span> : null}
@@ -311,8 +352,8 @@ export function KawaiiDialogueDock() {
           </button>
         ))}
       </div>
-      <div className="kawaii-dialogue-dock__cutin">
-        <img src={scene.character.overlayImage} alt="" loading="lazy" />
+      <div className="kawaii-dialogue-dock__scene">
+        <img src={scene.character.sceneImage} alt="" loading="lazy" />
       </div>
     </section>
   );

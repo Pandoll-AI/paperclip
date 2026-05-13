@@ -13,6 +13,7 @@ coverage/
 data/
 .paperclip/
 .codex-llm/logs/
+*.bak
 .pnpm-store/
 tmp-*
 cli/tmp/

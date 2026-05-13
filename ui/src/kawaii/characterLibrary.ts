@@ -8,7 +8,8 @@ export type KawaiiCharacter = {
   role: string;
   accent: string;
   avatarImage: string;
-  overlayImage: string;
+  sourceImage: string;
+  sceneImage: string;
   referenceImage: string;
   avatarTraits: string[];
   expressions: string[];
@@ -18,8 +19,10 @@ export type KawaiiCharacter = {
 };
 
 const referenceImage = "/kawaii/characters/reference/character-lineup-reference.png";
+const sourceImage = (id: KawaiiCharacterId) => `/kawaii/characters/sources/${id}-white.png`;
+const sceneImage = (id: KawaiiCharacterId) => `/kawaii/characters/scenes/${id}-dialogue-scene.png`;
 
-export const kawaiiUserOutline = "/kawaii/characters/user-faceless-outline.svg";
+export const kawaiiUserOutline = "/kawaii/generated/ceo-crest-avatar.png";
 
 export const kawaiiCharacters: KawaiiCharacter[] = [
   {
@@ -28,7 +31,8 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     role: "CTO / Engineer",
     accent: "#9a78dc",
     avatarImage: "/kawaii/characters/avatars/rika.png",
-    overlayImage: "/kawaii/characters/overlays/rika-transparent.png",
+    sourceImage: sourceImage("rika"),
+    sceneImage: sceneImage("rika"),
     referenceImage,
     avatarTraits: ["black hair with purple sheen", "violet eyes", "purple headphones", "gold code hairpin"],
     expressions: ["neutral", "happy", "thinking", "concerned", "celebrating", "confident"],
@@ -42,7 +46,8 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     role: "PM / UI Designer",
     accent: "#8fb3e8",
     avatarImage: "/kawaii/characters/avatars/sera.png",
-    overlayImage: "/kawaii/characters/overlays/sera-transparent.png",
+    sourceImage: sourceImage("sera"),
+    sceneImage: sceneImage("sera"),
     referenceImage,
     avatarTraits: ["honey-blonde hair", "blue eyes", "blue bow", "stationery planner accessory"],
     expressions: ["neutral", "happy", "explaining", "thinking", "gentle concern", "approval smile"],
@@ -56,7 +61,8 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     role: "QA Agent",
     accent: "#f4a34d",
     avatarImage: "/kawaii/characters/avatars/yuna.png",
-    overlayImage: "/kawaii/characters/overlays/yuna-transparent.png",
+    sourceImage: sourceImage("yuna"),
+    sceneImage: sceneImage("yuna"),
     referenceImage,
     avatarTraits: ["silver-white hair", "amber eyes", "orange flower hair clip", "cream QA uniform"],
     expressions: ["neutral", "observing", "concerned", "strict", "happy", "resolved"],
@@ -70,7 +76,8 @@ export const kawaiiCharacters: KawaiiCharacter[] = [
     role: "Finance Agent",
     accent: "#75c8a3",
     avatarImage: "/kawaii/characters/avatars/nari.png",
-    overlayImage: "/kawaii/characters/overlays/nari-transparent.png",
+    sourceImage: sourceImage("nari"),
+    sceneImage: sceneImage("nari"),
     referenceImage,
     avatarTraits: ["warm brown bob", "green eyes", "round glasses", "green finance ribbon"],
     expressions: ["neutral", "thinking", "concerned", "approving", "warning", "soft smile"],

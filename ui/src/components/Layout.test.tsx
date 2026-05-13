@@ -45,8 +45,10 @@ vi.mock("./Sidebar", () => ({
 }));
 
 vi.mock("../kawaii/KawaiiShell", () => ({
+  KawaiiCeoAssetProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   KawaiiSidebar: () => <div>Kawaii company nav</div>,
   KawaiiTopBar: () => <div>Kawaii top bar</div>,
+  KawaiiMobileNav: () => <div>Kawaii mobile nav</div>,
   KawaiiPageSurface: ({ children }: { children: React.ReactNode }) => <div>Kawaii page surface {children}</div>,
   KawaiiDialogueDock: () => <div>Kawaii dialogue dock</div>,
 }));

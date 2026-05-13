@@ -1,0 +1,53 @@
+{
+  "_schema_version": 1,
+  "description": "Local Paperclip Kawaii upgrade pipeline. It uses Codex CLI stages to analyze upstream Paperclip changes, repair kawaii UI integration, and review the candidate diff.",
+  "prod_connector": "none-local-cli-only",
+  "human_approval_required": [
+    "repair-kawaii"
+  ],
+  "stages": [
+    {
+      "name": "analyze-upstream",
+      "purpose": "Compare current paperclip-kawaii against upstream Paperclip before applying repairs. Identify API, route, build, and UI-contract risks. Text output only.",
+      "tier": "T1",
+      "model_type": "fast_complex",
+      "timeout_ms": 600000
+    },
+    {
+      "name": "repair-kawaii",
+      "purpose": "Resolve merge conflicts and compatibility gaps after upstream Paperclip updates while preserving the kawaii UI contract.",
+      "tier": "T3",
+      "model_type": "code",
+      "timeout_ms": 1800000,
+      "allowed_dirs": [
+        "ui",
+        "server",
+        "packages",
+        "cli",
+        "doc",
+        "scripts",
+        ".codex-llm"
+      ],
+      "allowed_files": [
+        "KAWAII-UI.md",
+        "package.json",
+        "pnpm-lock.yaml",
+        "run.sh",
+        "paperclip-kawaii"
+      ],
+      "forbidden_codepoints": [
+        [
+          54224,
+          54616
+        ]
+      ]
+    },
+    {
+      "name": "review-repair",
+      "purpose": "Review the generated candidate diff for regressions, missing tests, broken filters, route wrapper leaks, generated asset selection bugs, and kawaii design violations. Text output only.",
+      "tier": "T1",
+      "model_type": "reasoning",
+      "timeout_ms": 900000
+    }
+  ]
+}

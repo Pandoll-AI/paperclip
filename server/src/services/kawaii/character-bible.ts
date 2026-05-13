@@ -7,6 +7,7 @@ export type KawaiiCharacterBible = {
   name: string;
   roleAffinity: string[];
   referenceImage: string;
+  sourceCharacterImage: string;
   palette: string[];
   voiceTone: string;
   avatarTraits: string[];
@@ -21,6 +22,7 @@ export const KAWAII_STYLE_VERSION = "paperclip-kawaii-v1";
 export const KAWAII_PERSONA_VERSION = "kawaii-persona-v1";
 
 const referenceImage = "ui/public/kawaii/characters/reference/character-lineup-reference.png";
+const sourceCharacterImage = (id: KawaiiCharacterId) => `ui/public/kawaii/characters/sources/${id}-white.png`;
 
 export const kawaiiCharacterBibles: KawaiiCharacterBible[] = [
   {
@@ -28,6 +30,7 @@ export const kawaiiCharacterBibles: KawaiiCharacterBible[] = [
     name: "Rika",
     roleAffinity: ["cto", "engineer", "frontend", "backend", "architect", "builder", "code", "devops"],
     referenceImage,
+    sourceCharacterImage: sourceCharacterImage("rika"),
     palette: ["deep black", "violet", "soft cream", "gold"],
     voiceTone: "confident, precise, protective of the CEO",
     avatarTraits: ["black hair with purple sheen", "violet eyes", "purple headphones", "gold code hairpin"],
@@ -42,6 +45,7 @@ export const kawaiiCharacterBibles: KawaiiCharacterBible[] = [
     name: "Sera",
     roleAffinity: ["pm", "product", "designer", "design", "ui", "ux", "planning", "goal"],
     referenceImage,
+    sourceCharacterImage: sourceCharacterImage("sera"),
     palette: ["honey blonde", "clear blue", "cream", "coral"],
     voiceTone: "warm, organized, gentle, courtly toward the CEO",
     avatarTraits: ["honey-blonde hair", "blue eyes", "blue bow", "stationery planner accessory"],
@@ -56,6 +60,7 @@ export const kawaiiCharacterBibles: KawaiiCharacterBible[] = [
     name: "Yuna",
     roleAffinity: ["qa", "test", "quality", "audit", "review", "checklist"],
     referenceImage,
+    sourceCharacterImage: sourceCharacterImage("yuna"),
     palette: ["silver white", "amber", "orange", "cream"],
     voiceTone: "careful, observant, strict when quality is at risk",
     avatarTraits: ["silver-white hair", "amber eyes", "orange flower hair clip", "cream QA uniform"],
@@ -70,6 +75,7 @@ export const kawaiiCharacterBibles: KawaiiCharacterBible[] = [
     name: "Nari",
     roleAffinity: ["finance", "budget", "ledger", "cost", "ops", "operations", "risk"],
     referenceImage,
+    sourceCharacterImage: sourceCharacterImage("nari"),
     palette: ["warm brown", "green", "cream", "soft gold"],
     voiceTone: "gentle, analytical, protective about budget decisions",
     avatarTraits: ["warm brown bob", "green eyes", "round glasses", "green finance ribbon"],
@@ -96,6 +102,7 @@ export function characterReferenceManifest(character: KawaiiCharacterBible) {
   return {
     characterId: character.id,
     referenceImage: character.referenceImage,
+    sourceCharacterImage: character.sourceCharacterImage,
     avatarTraits: character.avatarTraits,
     palette: character.palette,
     expressions: character.allowedExpressions,
@@ -112,6 +119,6 @@ export function assignCharacterToEntry<T extends KawaiiAssetEntry>(
   return {
     ...entry,
     characterId: character.id,
-    referenceImages: [character.referenceImage],
+    referenceImages: [character.referenceImage, character.sourceCharacterImage],
   };
 }

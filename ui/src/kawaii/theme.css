@@ -92,6 +92,20 @@
   padding: 8px 4px 12px;
 }
 
+.kawaii-sidebar__company-menu {
+  min-width: 0;
+  flex: 1;
+}
+
+.kawaii-sidebar__company-menu > button {
+  width: 100%;
+  border: 1px solid rgba(255, 127, 110, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--kawaii-ink);
+  box-shadow: 0 8px 18px rgba(126, 77, 55, 0.08);
+}
+
 .kawaii-brand-mark {
   display: grid;
   width: 36px;
@@ -408,6 +422,18 @@
   align-items: center;
   gap: 10px;
   text-align: right;
+}
+
+.kawaii-topbar__company {
+  display: none;
+  width: min(280px, 32vw);
+}
+
+.kawaii-topbar__company > button {
+  border: 1px solid rgba(255, 127, 110, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--kawaii-ink);
 }
 
 .kawaii-ceo-chip strong {
@@ -1164,27 +1190,24 @@
   font-size: 12px;
 }
 
-.kawaii-dialogue-dock__cutin {
+.kawaii-dialogue-dock__scene {
   position: absolute;
-  right: -4px;
-  bottom: -14px;
+  right: 12px;
+  bottom: 12px;
   z-index: 4;
-  width: 318px;
-  height: 236px;
+  width: 326px;
+  height: 210px;
   overflow: hidden;
   pointer-events: none;
-  border-radius: 30px 30px 20px 20px;
-  filter: drop-shadow(0 20px 28px rgba(127, 74, 46, 0.22));
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(127, 74, 46, 0.18);
 }
 
-.kawaii-dialogue-dock__cutin img {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 405px;
-  max-width: none;
-  height: auto;
-  transform: translateX(-50%);
+.kawaii-dialogue-dock__scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% center;
 }
 
 .kawaii-portrait {
@@ -1198,6 +1221,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.kawaii-portrait--hero img,
+.kawaii-portrait--cutin img {
+  object-fit: cover;
+  object-position: 70% center;
 }
 
 .kawaii-portrait__placeholder {
@@ -1301,6 +1330,9 @@
   .kawaii-sidebar {
     display: none;
   }
+  .kawaii-topbar__company {
+    display: block;
+  }
   .kawaii-mobile-nav {
     display: flex;
     gap: 8px;
@@ -1345,7 +1377,7 @@
     margin: 12px 8px 0;
     padding-right: 24px;
   }
-  .kawaii-dialogue-dock__cutin {
+  .kawaii-dialogue-dock__scene {
     display: none;
   }
 }
@@ -1417,13 +1449,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
+  object-position: 70% center;
+  opacity: 1;
 }
 
 .kawaii-agent-stage__light {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(255, 248, 234, 0.94), rgba(255, 248, 234, 0.26) 55%, rgba(255, 248, 234, 0.08));
+  background: linear-gradient(90deg, rgba(255, 248, 234, 0.94), rgba(255, 248, 234, 0.38) 54%, rgba(255, 248, 234, 0.02) 82%);
 }
 
 .kawaii-agent-stage__copy {

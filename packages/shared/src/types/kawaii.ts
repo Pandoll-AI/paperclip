@@ -16,9 +16,9 @@ export type KawaiiAssetSlot =
   | "portrait_bust_warning"
   | "portrait_full_idle"
   | "portrait_full_working"
-  | "dialogue_cutin_default"
-  | "dialogue_cutin_emotional"
-  | "overlay_full_transparent"
+  | "scene_composite_default"
+  | "scene_composite_focus"
+  | "scene_composite_warning"
   | "chibi_sticker"
   | "talking_sheet"
   | "scene_background_calm"
@@ -37,7 +37,7 @@ export type KawaiiAssetRole =
   | "expression"
   | "background"
   | "dialogue"
-  | "overlay"
+  | "scene_composite"
   | "sticker"
   | "talking_sheet"
   | "scene_background"
@@ -58,7 +58,6 @@ export interface KawaiiAssetEntry {
   negativePrompt?: string | null;
   referenceImages?: string[];
   size?: string | null;
-  transparent?: boolean;
   pinned?: boolean;
   status?: "planned" | "ready" | "missing" | "failed";
 }

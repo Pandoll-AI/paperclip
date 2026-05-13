@@ -48,9 +48,12 @@ const baseNegative = [
   "extra fingers",
   "distorted hands",
   "photorealistic face",
+  "skin discoloration",
+  "unfinished pasted edges",
+  "face stains",
+  "face blotches",
   "dark gritty mood",
   "purple-dominant generic gradient",
-  "flat single-color background",
 ].join(", ");
 
 function baseStylePrompt() {
@@ -106,6 +109,28 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
   const character = characterBibleForText(`${agent.name} ${role}`);
   const base = staffBase(agent, character);
   const negativePrompt = `${baseNegative}, ${character.negativePrompt}`;
+  const sceneCompositeRule = [
+    `Use ${character.sourceCharacterImage} as the approved source-character image.`,
+    "Generate one complete visual novel office scene containing the approved character and environment.",
+    "Canvas is 1536x1024 landscape.",
+    "Character placement: full body on the right side, character center at 76% of canvas width, body height 82-90% of canvas height, head top between 5-10%, feet between 92-97%, right edge no closer than 4%, no clipping.",
+    "Leave the left 58% of the canvas as readable warm office atmosphere for the interface text layer.",
+    "Preserve the source character identity, face, hair, outfit family, pose language, both legs, both feet, both shoes, both arms, hands, and accessories.",
+    "Paint the room behind and around the character so the final image feels like a single illustrated scene.",
+  ].join(" ");
+  const sceneNegativePrompt = [
+    negativePrompt,
+    "visible source-card edge",
+    "hard rectangle around character",
+    "unfinished pasted border",
+    "missing limb",
+    "missing leg",
+    "one leg",
+    "hollow limb",
+    "distorted feet",
+    "clipped head",
+    "clipped shoes",
+  ].join(", ");
 
   const assets: KawaiiAssetEntry[] = [
     staffEntry(character, {
@@ -191,33 +216,37 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
       negativePrompt,
     }),
     staffEntry(character, {
-      key: "dialogue_cutin_default",
-      label: "Dialogue cut-in",
-      role: "dialogue",
-      expression: "talking",
+      key: "scene_composite_default",
+      label: "Default character scene",
+      role: "scene_composite",
+      expression: "neutral",
+      scene: "office",
       size: "1536x1024",
-      prompt: `${base} Visual novel dialogue cut-in, character framed on one side with soft empty dialogue-safe space, warm office backdrop.`,
-      negativePrompt,
+      prompt: `${base} ${sceneCompositeRule} Scene mood: calm Paperclip office daylight, respectful visual-novel staff presence.`,
+      negativePrompt: sceneNegativePrompt,
     }),
     staffEntry(character, {
-      key: "dialogue_cutin_emotional",
-      label: "Emotional dialogue cut-in",
-      role: "dialogue",
+      key: "scene_composite_focus",
+      label: "Focused character scene",
+      role: "scene_composite",
+      expression: "focused",
+      scene: character.allowedScenes[0],
+      mood: character.allowedMoods[0],
+      accessory: character.allowedAccessories[0],
+      size: "1536x1024",
+      prompt: `${base} ${sceneCompositeRule} Scene mood: ${character.allowedMoods[0]} ${character.allowedScenes[0]} with ${character.allowedAccessories[0]}, polished but quiet.`,
+      negativePrompt: sceneNegativePrompt,
+    }),
+    staffEntry(character, {
+      key: "scene_composite_warning",
+      label: "Warning character scene",
+      role: "scene_composite",
       expression: "concerned",
+      scene: character.allowedScenes[2],
       mood: character.allowedMoods[2],
       size: "1536x1024",
-      prompt: `${base} Visual novel emotional cut-in for ${character.allowedMoods[2]} moments, expressive but not exaggerated, dialogue-safe space.`,
-      negativePrompt,
-    }),
-    staffEntry(character, {
-      key: "overlay_full_transparent",
-      label: "Transparent full overlay",
-      role: "overlay",
-      expression: "neutral",
-      size: "1024x1536",
-      transparent: true,
-      prompt: `${base} Full-body character overlay on perfectly flat #00ff00 chroma-key background for transparency removal, no shadow, generous padding.`,
-      negativePrompt: `${negativePrompt}, green clothing, green background spill`,
+      prompt: `${base} ${sceneCompositeRule} Scene mood: ${character.allowedMoods[2]} soft warning, visual-novel tension without harsh danger colors.`,
+      negativePrompt: sceneNegativePrompt,
     }),
     staffEntry(character, {
       key: "chibi_sticker",
@@ -244,6 +273,7 @@ export function buildStaffPromptPlan(agent: KawaiiPromptStaff): KawaiiPromptPlan
     batchPrompt: [
       "Generate a consistent Paperclip kawaii staff character image set.",
       "Every item must preserve the same character identity and outfit family.",
+      "Large character presentation uses complete character-in-scene illustrations.",
       base,
     ].join(" "),
     negativePrompt,
@@ -277,7 +307,7 @@ const sceneMoods = [
 
 export function buildScenePromptPlan(sceneId: KawaiiSceneId): KawaiiPromptPlan {
   const label = sceneLabels[sceneId] ?? sceneId;
-  const negativePrompt = `${baseNegative}, people, character portrait, face close-up, unreadable UI text`;
+  const negativePrompt = `${baseNegative}, people, character portrait, face close-up, unreadable UI text, flat single-color background`;
   const assets: KawaiiAssetEntry[] = sceneMoods.map(([key, mood, description]) => entry({
     key,
     label: `${label} ${mood}`,
@@ -289,7 +319,7 @@ export function buildScenePromptPlan(sceneId: KawaiiSceneId): KawaiiPromptPlan {
       baseStylePrompt(),
       `Visual novel background: ${label}.`,
       `Mood: ${description}.`,
-      "No people, no character faces, no readable text, leave clear space for dialogue UI overlays.",
+      "No people, no character faces, no readable text, leave clear space for dialogue UI.",
     ].join(" "),
     negativePrompt,
   }));
@@ -326,8 +356,7 @@ export function buildCeoSetupPromptPlan(companyId: string): KawaiiPromptPlan {
       label: "Faceless user outline",
       role: "brand",
       size: "1024x1024",
-      transparent: true,
-      prompt: `${royalRule} Simple faceless dotted outline avatar on flat #00ff00 chroma-key background, no facial features.`,
+      prompt: `${royalRule} Simple faceless dotted outline avatar on warm cream paper-texture background, no facial features.`,
       negativePrompt: `${negativePrompt}, face, facial features`,
     }),
     entry({

@@ -1,0 +1,16 @@
+{
+  "id": "ceo-crest-avatar-1",
+  "created_at": "2026-05-13T18:23:28",
+  "prompt": "Paperclip kawaii visual novel UI asset: CEO user represented as a faceless royal paperclip crest avatar, no human face, no eyes, no mouth, no nose, no text, tiny crown, dotted silhouette motif, warm cream and coral office palette, polished anime-game UI icon quality, centered composition, clean 1024 square PNG.",
+  "negative": "face, facial features, eyes, mouth, nose, portrait, real person, text, watermark, logo text, blurry, cropped",
+  "model": null,
+  "loras": [],
+  "seed": null,
+  "steps": null,
+  "cfg": null,
+  "sampler": null,
+  "size": "1024x1024",
+  "quality": "low",
+  "reference_image": null,
+  "generator": "imagegen-codex"
+}

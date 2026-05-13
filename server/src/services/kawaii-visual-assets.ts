@@ -91,12 +91,12 @@ function codexRequest(
       size: item.size ?? "1024x1024",
       prompt: item.prompt,
       negative: item.negativePrompt,
+      referenceImages: item.referenceImages ?? [],
       notes: [
         item.characterId ? `character_id=${item.characterId}` : null,
         item.expression ? `expression=${item.expression}` : null,
         item.scene ? `scene=${item.scene}` : null,
         item.mood ? `mood=${item.mood}` : null,
-        item.transparent ? "transparent_or_chroma_key_output=true" : null,
       ].filter(Boolean).join("; "),
     })),
   };

@@ -18,28 +18,32 @@
       "role": "CTO / Engineer",
       "avatarTraits": ["black hair with purple sheen", "violet eyes", "purple headphones", "gold code hairpin"],
       "avatar": "/kawaii/characters/avatars/rika.png",
-      "overlay": "/kawaii/characters/overlays/rika-transparent.png"
+      "sourceCharacter": "/kawaii/characters/sources/rika-white.png",
+      "sceneComposite": "/kawaii/characters/scenes/rika-dialogue-scene.png"
     },
     {
       "id": "sera",
       "role": "PM / UI Designer",
       "avatarTraits": ["honey-blonde hair", "blue eyes", "blue bow", "stationery planner accessory"],
       "avatar": "/kawaii/characters/avatars/sera.png",
-      "overlay": "/kawaii/characters/overlays/sera-transparent.png"
+      "sourceCharacter": "/kawaii/characters/sources/sera-white.png",
+      "sceneComposite": "/kawaii/characters/scenes/sera-dialogue-scene.png"
     },
     {
       "id": "yuna",
       "role": "QA Agent",
       "avatarTraits": ["silver-white hair", "amber eyes", "orange flower hair clip", "cream QA uniform"],
       "avatar": "/kawaii/characters/avatars/yuna.png",
-      "overlay": "/kawaii/characters/overlays/yuna-transparent.png"
+      "sourceCharacter": "/kawaii/characters/sources/yuna-white.png",
+      "sceneComposite": "/kawaii/characters/scenes/yuna-dialogue-scene.png"
     },
     {
       "id": "nari",
       "role": "Finance Agent",
       "avatarTraits": ["warm brown bob", "green eyes", "round glasses", "green finance ribbon"],
       "avatar": "/kawaii/characters/avatars/nari.png",
-      "overlay": "/kawaii/characters/overlays/nari-transparent.png"
+      "sourceCharacter": "/kawaii/characters/sources/nari-white.png",
+      "sceneComposite": "/kawaii/characters/scenes/nari-dialogue-scene.png"
     }
   ],
   "generationAxes": {
@@ -48,8 +52,10 @@
     "accessories": ["clipboard", "laptop", "headphones", "planner", "checklist", "ledger pen", "calculator charm", "paperclip hairpin"],
     "moods": ["soft morning", "focused", "urgent but cute", "approval tension", "celebration", "careful budget review", "cozy planning"]
   },
-  "overlayPolicy": {
-    "useCases": ["dialogue dock", "approval warning", "quest handoff", "empty state", "success celebration"],
-    "rule": "Use overlay characters as occasional emotional anchors, not as a permanent decoration on every panel."
+  "sceneCompositePolicy": {
+    "useCases": ["dialogue dock", "approval warning", "quest handoff", "empty state", "success celebration", "staff detail stage"],
+    "rule": "Use finished character-in-scene composites as the only large character presentation path.",
+    "generationRule": "Input the approved sourceCharacter image and generate a 1536x1024 scene with the character integrated into the background.",
+    "placementRule": "Character center at 76% canvas width, body height 82-90%, head top 5-10%, feet 92-97%, right margin at least 4%, left 58% remains UI-safe."
   }
 }

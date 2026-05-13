@@ -2,7 +2,4 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$#" -eq 0 ]]; then
-  set -- run
-fi
-exec "${SCRIPT_DIR}/paperclip-kawaii" "$@"
+exec node "${SCRIPT_DIR}/scripts/paperclip-kawaii-cli.mjs" "$@"

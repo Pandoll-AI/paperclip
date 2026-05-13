@@ -41,7 +41,14 @@ import { scheduleMainContentFocus } from "../lib/main-content-focus";
 import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
 import { PluginSlotMount, resolveRouteSidebarSlot, usePluginSlots } from "../plugins/slots";
-import { KawaiiDialogueDock, KawaiiMobileNav, KawaiiPageSurface, KawaiiSidebar, KawaiiTopBar } from "../kawaii/KawaiiShell";
+import {
+  KawaiiCeoAssetProvider,
+  KawaiiDialogueDock,
+  KawaiiMobileNav,
+  KawaiiPageSurface,
+  KawaiiSidebar,
+  KawaiiTopBar,
+} from "../kawaii/KawaiiShell";
 
 const INSTANCE_SETTINGS_MEMORY_KEY = "paperclip.lastInstanceSettingsPath";
 
@@ -350,29 +357,31 @@ export function Layout() {
       <GeneralSettingsProvider value={{ keyboardShortcutsEnabled }}>
         <div className="kawaii-shell">
           <div className="kawaii-board">
-            <KawaiiSidebar />
-            <div className="kawaii-main">
-              <KawaiiTopBar />
-              <KawaiiMobileNav />
-              <main
-                id="main-content"
-                ref={mainContentRef}
-                tabIndex={-1}
-                className="kawaii-main__scroll outline-none"
-              >
-                {hasUnknownCompanyPrefix ? (
-                  <NotFoundPage
-                    scope="invalid_company_prefix"
-                    requestedPrefix={companyPrefix ?? selectedCompany?.issuePrefix}
-                  />
-                ) : (
-                  <KawaiiPageSurface>
-                    <Outlet />
-                  </KawaiiPageSurface>
-                )}
-              </main>
-              <KawaiiDialogueDock />
-            </div>
+            <KawaiiCeoAssetProvider>
+              <KawaiiSidebar />
+              <div className="kawaii-main">
+                <KawaiiTopBar />
+                <KawaiiMobileNav />
+                <main
+                  id="main-content"
+                  ref={mainContentRef}
+                  tabIndex={-1}
+                  className="kawaii-main__scroll outline-none"
+                >
+                  {hasUnknownCompanyPrefix ? (
+                    <NotFoundPage
+                      scope="invalid_company_prefix"
+                      requestedPrefix={companyPrefix ?? selectedCompany?.issuePrefix}
+                    />
+                  ) : (
+                    <KawaiiPageSurface>
+                      <Outlet />
+                    </KawaiiPageSurface>
+                  )}
+                </main>
+                <KawaiiDialogueDock />
+              </div>
+            </KawaiiCeoAssetProvider>
           </div>
           <CommandPalette />
           <NewIssueDialog />

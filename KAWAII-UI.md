@@ -157,9 +157,9 @@ Display rules:
 - Scene matching comes from `sceneRegistry.ts`.
 - Text should use the CEO honorific when addressing the user.
 - Choices are short operational options, not marketing copy.
-- The cut-in character is an overlay bust image, visible to chest level where possible.
-- Overlay art may cover the lower-right UI edge, but must not block primary controls.
-- Character head, hair, and upper silhouette must not be clipped.
+- The character visual is a finished character-in-scene image.
+- The dialogue scene image may occupy the lower-right UI edge, but must not block primary controls.
+- Character head, hair, hands, legs, and feet must not be clipped or hollow.
 
 ### Avatars And Character Art
 
@@ -170,17 +170,43 @@ Required assets for generated Staff sets:
 - `avatar_square`: small roster and compact identity.
 - `portrait_bust`: cards, side panels, and detail summaries.
 - `portrait_full`: Staff room stage and large profile views.
-- `dialogue_cutin`: bottom dialogue dock and occasional overlays.
+- `scene_composite`: full character-in-scene image for large panels, staff detail, and dialogue dock.
 - `scene_background_*`: visual-novel style route backgrounds.
 - Reference metadata: traits, expressions, scenes, accessories, and moods.
 
 Display rules:
 - `KawaiiAgentAvatar` handles compact identity.
 - `KawaiiPortrait` handles larger Staff presentation.
-- Generated assets should be preferred when ready.
-- Local reference characters are the fallback.
+- Generated `scene_composite_*` assets should be preferred when ready.
+- Local scene composites are the only bundled fallback for large character presentation.
 - Loading states should shimmer or paint softly instead of showing broken images.
 - The CEO/user outline is never replaced by a generated face.
+- Approved source-character images live under `/kawaii/characters/sources/`.
+
+### Character Scene Composite Contract
+
+Purpose:
+- Make every large character image a finished visual-novel scene.
+
+Generation rules:
+- Input is an approved source-character image.
+- Output is one complete scene image containing both character and background.
+- Canvas is `1536x1024` landscape.
+- Character placement:
+  - Character is on the right side.
+  - Character center is at `76%` of canvas width.
+  - Character height is `82-90%` of canvas height.
+  - Head top is between `5-10%` of canvas height.
+  - Feet are between `92-97%` of canvas height.
+  - Right edge keeps at least `4%` canvas margin.
+- UI-safe area:
+  - Left `58%` of the canvas remains readable warm office atmosphere.
+  - Bottom dialogue UI must remain legible over the image.
+- Rejection rules:
+  - Missing or hollow limbs.
+  - Changed face identity.
+  - Clipped head, hair, hands, legs, feet, or shoes.
+  - Visible source-card border, hard rectangular paste edge, or unfinished background around the character.
 
 ### Generated Scene Backgrounds
 
@@ -189,7 +215,7 @@ Purpose:
 
 Display rules:
 - Dialogue-heavy pages should have a scene background candidate.
-- Backgrounds must support readable UI overlays.
+- Backgrounds must support readable UI layers.
 - Generated scene background assets should be selected by `ownerType=scene`, `ownerId={scene.id}`, and `purpose=scene_background`.
 - If generated scene assets are missing, pending, or failed, the UI must fall back to bundled local scene art.
 - Do not start image generation during render. Use setup or explicit regenerate actions to enqueue jobs.
@@ -225,7 +251,7 @@ Kawaii presentation must not fabricate operational metrics.
 Rules:
 - Dashboard, Staff, Quest, Project, Approval, and Budget numbers must come from API data or render an explicit empty state.
 - Staff Room must not hardcode trust, skill, success, direct report, or goal values.
-- Generated art loading may use fallback images, but operational state must not use fallback fake values.
+- Generated art loading may use local scene composites, but operational state must not use fallback fake values.
 
 ## Route Coverage Checklist
 
@@ -237,7 +263,7 @@ When adding or changing a route:
 4. Add or update the dialogue scene in `sceneRegistry.ts`.
 5. Ensure any Staff identity uses `kawaiiStaffLabel`.
 6. Ensure CEO identity uses `kawaiiCeoLabel` or `kawaiiCeoHonorific`.
-7. Confirm the bottom dialogue dock renders and uses a non-clipped overlay character.
+7. Confirm the bottom dialogue dock renders a non-clipped character-in-scene composite.
 8. Confirm only `.kawaii-main__scroll` scrolls.
 9. Check desktop and mobile screenshots.
 10. Search for disallowed legacy honorific wording before handoff.
@@ -250,4 +276,4 @@ To keep this maintainable after upstream updates:
 - Replace high-value pages with native kawaii bodies gradually.
 - Let legacy pages remain inside the kawaii shell until they are worth a full redesign.
 - Keep generated image contracts in shared/server APIs instead of hardcoding image provider calls in React.
-- Use local fallback assets so the UI is complete before background generation finishes.
+- Use local scene composite assets so the UI is complete before generated scene composites finish.

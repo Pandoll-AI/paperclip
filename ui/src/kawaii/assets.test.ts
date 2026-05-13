@@ -30,11 +30,11 @@ function setWithKeys(keys: string[]): KawaiiAssetSet {
 
 describe("assetByKey", () => {
   it("matches generated concrete asset keys by requested prefix", () => {
-    const set = setWithKeys(["avatar_square_neutral", "portrait_full_idle", "dialogue_cutin_default"]);
+    const set = setWithKeys(["avatar_square_neutral", "portrait_full_idle", "scene_composite_default"]);
 
     expect(assetByKey(set, "avatar_square")?.key).toBe("avatar_square_neutral");
     expect(assetByKey(set, "portrait_full")?.key).toBe("portrait_full_idle");
-    expect(assetByKey(set, "dialogue_cutin")?.key).toBe("dialogue_cutin_default");
+    expect(assetByKey(set, "scene_composite")?.key).toBe("scene_composite_default");
   });
 
   it("respects requested key priority", () => {

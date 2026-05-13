@@ -18,7 +18,12 @@ export function KawaiiAgentAvatar({
   characterIndex?: number;
   variant?: "staff" | "user";
 }) {
-  const avatar = assetByKey(assetSet, ["avatar_square", "expression_neutral"]);
+  const avatar = assetByKey(
+    assetSet,
+    variant === "user"
+      ? ["ceo_crest_avatar", "user_dotted_outline", "avatar_square", "expression_neutral"]
+      : ["avatar_square", "expression_neutral"],
+  );
   const generating = isKawaiiGenerating(assetSet);
   const fallbackSrc = variant === "user"
     ? kawaiiUserOutline
